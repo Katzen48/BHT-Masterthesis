@@ -1,0 +1,9 @@
+{
+  "name": "azuredevops",
+  "module": "src/index.ts",
+  "type": "module",
+  "dependencies": {
+    "types": "workspace:*",
+    "azure-devops-node-api": "^12.1.0"
+  }
+}
