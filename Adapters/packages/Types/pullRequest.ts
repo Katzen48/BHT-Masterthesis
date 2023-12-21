@@ -9,8 +9,8 @@ export interface PullRequests {
 export interface PullRequest extends WorkItem {
     head: Head
     base: Head
-    merged_at: Date
-    issue: Issue
+    merged_at: Date | null
+    issues: Issue[]
     commits: Commit[]
 }
 

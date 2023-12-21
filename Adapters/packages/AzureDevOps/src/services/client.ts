@@ -122,11 +122,57 @@ export class Client {
                 "$expand": "all"
             })
         })).json()
+    }
 
-        if (!response?.workItems) {
+    async getPullRequests(projectId: string, repoId: string) {
+        const response = await (await fetch(this.orgUrl + projectId + '/_apis/git/repositories/' + repoId + '/pullrequests?searchCriteria.status=all&api-version=7.1-preview.1', {
+            method: 'GET',
+            headers: this.getHeaders()
+        })).json()
+
+        if (!response?.value || response.count < 1) {
             return []
         }
 
-        return response.workItems
+        return response.value
+    }
+
+    async getPullRequestWorkItems(projectId: string, repoId: string, pullRequestId: string) {
+        const response = await (await fetch(this.orgUrl + projectId + '/_apis/git/repositories/' + repoId + '/pullrequests/' + pullRequestId + '/workitems?api-version=7.1-preview.1', {
+            method: 'GET',
+            headers: this.getHeaders()
+        })).json()
+
+        if (!response?.value || response.count < 1) {
+            return []
+        }
+
+        return response.value
+    }
+
+    async getPullRequestCommits(projectId: string, repoId: string, pullRequestId: string) {
+        const response = await (await fetch(this.orgUrl + projectId + '/_apis/git/repositories/' + repoId + '/pullrequests/' + pullRequestId + '/commits?api-version=7.1-preview.1', {
+            method: 'GET',
+            headers: this.getHeaders()
+        })).json()
+
+        if (!response?.value || response.count < 1) {
+            return []
+        }
+
+        return response.value
+    }
+
+    async getCommits(projectId: string, repoId: string) {
+        const response = await (await fetch(this.orgUrl + projectId + '/_apis/git/repositories/' + repoId + '/commits?api-version=7.1-preview.1', {
+            method: 'GET',
+            headers: this.getHeaders()
+        })).json()
+
+        if (!response?.value || response.count < 1) {
+            return []
+        }
+
+        return response.value
     }
 }

@@ -1,4 +1,4 @@
-import { listRepositories, getRepository, getRepositoryIssues } from "./services/repositories"
+import {listRepositories, getRepository, getRepositoryIssues, getRepositoryPullRequests, getRepositoryCommits} from "./services/repositories"
 import {listProjects, getProject} from './services/projects'
 
 export async function handleDirect(request: Request, pathParts: string[], searchParams: URLSearchParams): Promise<Response> {
@@ -25,6 +25,10 @@ async function handleRepos(request: Request, pathParts: string[], searchParams: 
         switch (pathParts[3]) {
             case 'issues':
                 return  Response.json(await getRepositoryIssues(pathParts[2]))
+            case 'pulls':
+                return Response.json(await getRepositoryPullRequests(pathParts[2]))
+            case 'commits':
+                return Response.json(await getRepositoryCommits(pathParts[2]))
         }
     }
 

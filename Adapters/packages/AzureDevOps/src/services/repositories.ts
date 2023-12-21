@@ -1,4 +1,4 @@
-import {Issue, Repository} from 'types'
+import {Issue, PullRequest, Repository, Head, Commit} from 'types'
 import {chunk} from '../utils'
 
 export async function listRepositories(): Promise<Repository[]> {
@@ -17,7 +17,7 @@ export async function listRepositories(): Promise<Repository[]> {
 
     const repositories: Repository[] = repositoryResults.flatMap(repository => {
         return {
-            id: repository.id,
+            id: encodeURIComponent(repository.project.id + '/' + repository.id),
             full_name: repository.name,
             default_branch: repository.defaultBranch,
             created_at: null,
@@ -35,7 +35,7 @@ export async function getRepository(id: string): Promise<Repository> {
     const repository = await global.client.getRepository(projectId, repositoryId)
 
     return {
-        id: repository.id,
+        id: repository.project.id + '/' + repository.id,
         full_name: repository.name,
         default_branch: repository.defaultBranch,
         created_at: null,
@@ -47,7 +47,14 @@ export async function getRepositoryIssues(id: string): Promise<Issue[]> {
     const normalizedId: string = decodeURIComponent(id)
     const [projectId, repositoryId] = normalizedId.split('/')
 
-    const repo = await global.client.getRepository(projectId, repositoryId)
+    const rawRepo = await global.client.getRepository(projectId, repositoryId)
+    const repo: Repository = {
+        id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
+        full_name: rawRepo.name,
+        default_branch: rawRepo.defaultBranch,
+        created_at: null,
+        updated_at: null 
+    }
 
     const issuePromises = []
     const teams = await global.client.listTeams(projectId)
@@ -79,4 +86,81 @@ export async function getRepositoryIssues(id: string): Promise<Issue[]> {
             repo
         }
     })
+}
+
+export async function getRepositoryPullRequests(id: string): Promise<PullRequest[]> {
+    const normalizedId: string = decodeURIComponent(id)
+    const [projectId, repositoryId] = normalizedId.split('/')
+
+    const rawRepo = await global.client.getRepository(projectId, repositoryId)
+    const repo: Repository = {
+        id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
+        full_name: rawRepo.name,
+        default_branch: rawRepo.defaultBranch,
+        created_at: null,
+        updated_at: null 
+    }
+
+    // TODO pagination
+    const results: any[] = await global.client.getPullRequests(projectId, repositoryId)
+    const pullRequests: PullRequest[] = []
+    
+    for (const pullRequest of results) {
+        const issues: Issue[] = (await global.client.getPullRequestWorkItems(projectId, repositoryId, pullRequest.pullRequestId)).map(workItem => {
+            return {
+                id: workItem.id
+            }
+        })
+
+        const commits: Commit[] = (await global.client.getPullRequestCommits(projectId, repositoryId, pullRequest.pullRequestId)).map(commit => {
+            return {
+                sha: commit.commitId
+            }
+        })
+
+        const head: Head = {
+            ref: pullRequest.sourceRefName,
+            sha: pullRequest.lastMergeSourceCommit.commitId
+        }
+        const base: Head = {
+            ref: pullRequest.targetRefName,
+            sha: pullRequest.lastMergeTargetCommit.commitId
+        }
+        pullRequests.push({
+            id: pullRequest.pullRequestId,
+            created_at: pullRequest.creationDate,
+            closed_at: pullRequest.closedDate,
+            repo,
+            head,
+            base,
+            merged_at: pullRequest.status === 'completed' ? pullRequest.closedDate : null,
+            issues,
+            commits
+        })
+    }
+
+    return pullRequests
+}
+
+export async function getRepositoryCommits(id: string): Promise<Commit[]> {
+    const normalizedId: string = decodeURIComponent(id)
+    const [projectId, repositoryId] = normalizedId.split('/')
+
+    const rawRepo = await global.client.getRepository(projectId, repositoryId)
+    const repo: Repository = {
+        id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
+        full_name: rawRepo.name,
+        default_branch: rawRepo.defaultBranch,
+        created_at: null,
+        updated_at: null 
+    }
+
+    const commits: Commit[] = (await global.client.getCommits(projectId, repositoryId)).map(commit => {
+        return {
+            sha: commit.commitId,
+            repo
+        }
+    })
+
+    return commits
 }
