@@ -9,7 +9,10 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-push-azuredevops-adapter:
+  build-and-push-adapters:
+    strategy:
+      matrix:
+        adapter: [AzureDevOps, GitHub]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,7 +33,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5.4.0
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-azuredevops
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.adapter }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5.1.0
@@ -39,36 +42,4 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ADAPTER=AzureDevOps
-
-  build-and-push-github-adapter:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3.0.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5.4.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-github
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5.1.0
-        with:
-          context: ./Adapters
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: ADAPTER=GitHub
+          build-args: ADAPTER=${{ matrix.adapter }}
