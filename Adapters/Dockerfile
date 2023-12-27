@@ -10,16 +10,14 @@ WORKDIR /usr/src/app
 FROM base AS install
 ARG ADAPTER
 RUN mkdir -p /temp/dev
-#COPY package.json bun.lockb /temp/dev/
-COPY package.json /temp/dev/
+COPY package.json bun.lockb /temp/dev/
 COPY packages/Types/package.json /temp/dev/packages/Types/
 COPY packages/${ADAPTER}/package.json /temp/dev/packages/${ADAPTER}/
 RUN cd /temp/dev && bun install
 
 # install with --production (exclude devDependencies)
 RUN mkdir -p /temp/prod
-#COPY package.json bun.lockb /temp/prod/
-COPY package.json /temp/prod/
+COPY package.json bun.lockb /temp/prod/
 COPY packages/Types/package.json /temp/prod/packages/Types/
 COPY packages/${ADAPTER}/package.json /temp/prod/packages/${ADAPTER}/
 RUN cd /temp/prod && bun install --production
