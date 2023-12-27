@@ -16,5 +16,5 @@ export interface PullRequest extends WorkItem {
 
 export interface Head {
     ref: string
-    sha: string
+    sha?: string
 }

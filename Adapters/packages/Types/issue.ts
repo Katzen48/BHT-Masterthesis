@@ -6,5 +6,5 @@ export interface Issues {
 }
 
 export interface Issue extends WorkItem {
-    pull_requests: string[]
+    pull_requests?: string[]
 }
