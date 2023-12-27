@@ -16,17 +16,18 @@ COPY packages/${ADAPTER}/package.json /temp/dev/packages/${ADAPTER}/
 RUN cd /temp/dev && bun install
 
 # install with --production (exclude devDependencies)
-RUN mkdir -p /temp/prod
-COPY package.json bun.lockb /temp/prod/
-COPY packages/Types/package.json /temp/prod/packages/Types/
-COPY packages/${ADAPTER}/package.json /temp/prod/packages/${ADAPTER}/
-RUN cd /temp/prod && bun install --production
+#RUN mkdir -p /temp/prod
+#COPY package.json bun.lockb /temp/prod/
+#COPY packages/Types/package.json /temp/prod/packages/Types/
+#COPY packages/${ADAPTER}/package.json /temp/prod/packages/${ADAPTER}/
+#RUN cd /temp/prod && bun install --production
 
 # copy node_modules from temp directory
 # then copy all (non-ignored) project files into the image
 FROM base AS release
 ARG ADAPTER
 COPY --from=install /temp/dev/node_modules node_modules
+COPY --from=install /temp/dev/bun.lockb bun.lockb
 #COPY bun.lockb .
 COPY package.json .
 COPY tsconfig.json .
