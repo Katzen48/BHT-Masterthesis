@@ -1,4 +1,4 @@
-import {Issue, PullRequest, Repository, Head, Commit} from 'types'
+import {Issue, PullRequest, Repository, Head, Commit, Deployment} from 'types'
 import {chunk} from '../utils'
 
 export async function listRepositories(): Promise<Repository[]> {
@@ -163,4 +163,69 @@ export async function getRepositoryCommits(id: string): Promise<Commit[]> {
     })
 
     return commits
+}
+
+export async function getRepositoryPipelines(id: string): Promise<any[]> {
+    const normalizedId: string = decodeURIComponent(id)
+    const [projectId, repositoryId] = normalizedId.split('/')
+
+    const rawRepo = await global.client.getRepository(projectId, repositoryId)
+    const repo: Repository = {
+        id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
+        full_name: rawRepo.name,
+        default_branch: rawRepo.defaultBranch,
+        created_at: null,
+        updated_at: null 
+    }
+
+    const commits: Commit[] = (await global.client.getCommits(projectId, repositoryId)).map(commit => {
+        return {
+            sha: commit.commitId,
+            repo
+        }
+    })
+
+    return commits
+}
+
+export async function getRepositoryDeployments(id: string)/*: Promise<Deployment[]>*/ {
+    const normalizedId: string = decodeURIComponent(id)
+    const [projectId, repositoryId] = normalizedId.split('/')
+
+    const rawRepo = await global.client.getRepository(projectId, repositoryId)
+    const repo: Repository = {
+        id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
+        full_name: rawRepo.name,
+        default_branch: rawRepo.defaultBranch,
+        created_at: null,
+        updated_at: null 
+    }
+
+    const pipelineIds = (await global.client.listPipelines(projectId)).flatMap(pipeline => pipeline.id)
+
+    const deployments: Deployment[] = []
+    for (const pipelineId of pipelineIds) {
+        const runs = await global.client.listPipelineRuns(projectId, pipelineId)
+        const detailedRuns = []
+        for (const run of runs) {
+            const detailedRun = await global.client.getPipelineRun(projectId, pipelineId, run.id)
+            const repoResource = detailedRun.resources?.repositories?.self
+
+            deployments.push({
+                id: detailedRun.id,
+                sha: repoResource?.version,
+                commit: {
+                    sha: repoResource?.version,
+                    repo
+                },
+                ref: repoResource?.refName,
+                task: detailedRun.pipeline.name,
+                environment: null,
+                created_at: detailedRun.createdDate,
+                updated_at: detailedRun.finishedDate
+            })
+        }
+    }
+
+    return deployments
 }

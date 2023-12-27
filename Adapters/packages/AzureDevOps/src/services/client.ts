@@ -175,4 +175,44 @@ export class Client {
 
         return response.value
     }
+
+    async getCommit(projectId: string, repoId: string, commitId: string) {
+        return await (await fetch(this.orgUrl + projectId + '/_apis/git/repositories/' + repoId + '/commits/' + commitId + '?api-version=7.2-preview.2', {
+            method: 'GET',
+            headers: this.getHeaders()
+        })).json()
+    }
+
+    async listPipelines(projectId: string) {
+        const response = await (await fetch(this.orgUrl + projectId + '/_apis/pipelines?api-version=7.2-preview.1', {
+            method: 'GET',
+            headers: this.getHeaders()
+        })).json()
+
+        if (!response?.value || response.count < 1) {
+            return []
+        }
+
+        return response.value
+    }
+
+    async listPipelineRuns(projectId: string, pipelineId: number) {
+        const response = await (await fetch(this.orgUrl + projectId + '/_apis/pipelines/' + pipelineId + '/runs?api-version=7.2-preview.1', {
+            method: 'GET',
+            headers: this.getHeaders()
+        })).json()
+
+        if (!response?.value || response.count < 1) {
+            return []
+        }
+
+        return response.value
+    }
+
+    async getPipelineRun(projectId: string, pipelineId: number, runId: number) {
+        return await (await fetch(this.orgUrl + projectId + '/_apis/pipelines/' + pipelineId + '/runs/' + runId + '?api-version=7.2-preview.1', {
+            method: 'GET',
+            headers: this.getHeaders()
+        })).json()
+    }
 }
