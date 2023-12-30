@@ -98,6 +98,8 @@ export class Client {
                         }
                     }
                 }
+            } else {
+                moreRepos = false
             }
 
             if (viewer?.organizations) {
@@ -113,6 +115,8 @@ export class Client {
                         }
                     }
                 }
+            } else {
+                moreOrgs = false
             }
         }
 
@@ -194,7 +198,7 @@ export class Client {
 
     async listIssues(ownerLogin: string, repositoryName: string) {
         const query = gql`
-            query($ownerLogin: String!, $repositoryName: String!) {
+            query($ownerLogin: String!, $repositoryName: String!, $iCursor: String) {
                 repository(owner: $ownerLogin, name: $repositoryName) {
                     id
                     owner {
@@ -206,35 +210,103 @@ export class Client {
                     }
                     createdAt
                     updatedAt
-                    issues(first: 100) {
+                    issues(first: 100, after: $iCursor) {
+                        pageInfo {
+                            hasNextPage
+                            endCursor
+                        }
                         nodes {
                             number
                             createdAt
                             closedAt
-                            timelineItems(first: 100) {
-                                nodes {
-                                    ...on ConnectedEvent {
-                                        subject {
-                                            ...on PullRequest {
-                                                number
-                                            }
-                                        }
-                                        source {
-                                            ...on PullRequest {
-                                                number
-                                            }
+                        }
+                    }
+                }
+            }
+        `
+
+        let moreIssues = true
+        let iCursor = null
+        let repo: any = null
+
+        const issues: any[] = []
+        while(moreIssues) {
+            const rawRepo: any = (await this.execute(query, {
+                ownerLogin,
+                repositoryName,
+                iCursor
+            })).data.repository
+
+            if (repo === null) {
+                repo = {
+                    id: rawRepo?.id,
+                    owner: rawRepo?.owner,
+                    name: rawRepo?.name,
+                    defaultBranchRef: rawRepo?.defaultBranchRef,
+                    createdAt: rawRepo?.createdAt,
+                    updatedAt: rawRepo?.updatedAt
+                }
+            }
+
+            const rawIssues = rawRepo?.issues
+
+            moreIssues = rawIssues?.pageInfo?.hasNextPage === true
+            iCursor = rawIssues?.pageInfo?.endCursor
+
+            if (rawIssues?.nodes?.length > 0) {
+                for (const issue of rawIssues.nodes) {
+                    const items: any[] = await this.getIssueTimelineItems(ownerLogin, repositoryName, issue.number)
+
+                    issues.push({
+                        ...issue,
+                        timelineItems: {
+                            nodes: items
+                        }
+                    })
+                }
+            }
+        }
+
+        return {
+            ...repo,
+            issues: {
+                nodes: issues
+            }
+        }
+    }
+
+    async getIssueTimelineItems(ownerLogin: string, repositoryName: string, issueNumber: number) {
+        const query = gql`
+            query($ownerLogin: String!, $repositoryName: String!, $issueNumber: Int!, $tCursor: String) {
+                repository(owner: $ownerLogin, name: $repositoryName) {
+                    issue(number: $issueNumber) {
+                        timelineItems(first: 100, after: $tCursor) {
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
+                            nodes {
+                                ...on ConnectedEvent {
+                                    subject {
+                                        ...on PullRequest {
+                                            number
                                         }
                                     }
-                                    ...on DisconnectedEvent {
-                                        subject {
-                                            ...on PullRequest {
-                                                number
-                                            }
+                                    source {
+                                        ...on PullRequest {
+                                            number
                                         }
-                                        source {
-                                            ...on PullRequest {
-                                                number
-                                            }
+                                    }
+                                }
+                                ...on DisconnectedEvent {
+                                    subject {
+                                        ...on PullRequest {
+                                            number
+                                        }
+                                    }
+                                    source {
+                                        ...on PullRequest {
+                                            number
                                         }
                                     }
                                 }
@@ -245,15 +317,34 @@ export class Client {
             }
         `
 
-        return (await this.execute(query, {
-            ownerLogin,
-            repositoryName
-        })).data.repository
+        let moreItems = true
+        let iCursor = null
+
+        const timelineItems: any[] = []
+        while(moreItems) {
+            const items: any = (await this.execute(query, {
+                ownerLogin,
+                repositoryName,
+                issueNumber,
+                iCursor
+            })).data.repository?.issue?.timelineItems
+
+            moreItems = items?.pageInfo?.hasNextPage === true
+            iCursor = items?.pageInfo?.endCursor
+
+            if (items?.nodes?.length > 0) {
+                for (const item of items.nodes) {
+                    timelineItems.push(item)
+                }
+            }
+        }
+
+        return timelineItems
     }
 
     async getPullRequests(ownerLogin: string, repositoryName: string) {
         const query = gql`
-            query($ownerLogin: String!, $repositoryName: String!) {
+            query($ownerLogin: String!, $repositoryName: String!, $pCursor: String) {
                 repository(owner: $ownerLogin, name: $repositoryName) {
                     id
                     owner {
@@ -265,7 +356,11 @@ export class Client {
                     }
                     createdAt
                     updatedAt
-                    pullRequests(first: 100) {
+                    pullRequests(first: 100, after: $pCursor) {
+                        pageInfo {
+                            hasNextPage
+                            endCursor
+                        }
                         nodes {
                             number
                             createdAt
@@ -273,29 +368,99 @@ export class Client {
                             headRefName
                             baseRefName
                             mergedAt
-                            closingIssuesReferences(first: 100) {
-                                nodes {
-                                    number
-                                    createdAt
-                                    closedAt
-                                    repository {
-                                        name
-                                        owner {
-                                            login
-                                        }
-                                        defaultBranchRef {
-                                            name
-                                        }
-                                        createdAt
-                                        updatedAt
+                        }
+                    }
+                }
+            }
+        `
+
+        let morePullRequests = true
+        let pCursor = null
+        let repo: any = null
+
+        const pullRequestsPromises: Promise<any>[] = []
+        while(morePullRequests) {
+            const rawRepo: any = (await this.execute(query, {
+                ownerLogin,
+                repositoryName,
+                pCursor
+            })).data.repository
+
+            if (repo === null) {
+                repo = {
+                    id: rawRepo?.id,
+                    owner: rawRepo?.owner,
+                    name: rawRepo?.name,
+                    defaultBranchRef: rawRepo?.defaultBranchRef,
+                    createdAt: rawRepo?.createdAt,
+                    updatedAt: rawRepo?.updatedAt
+                }
+            }
+
+            const rawPullRequests = rawRepo?.pullRequests
+
+            pCursor = rawPullRequests?.pageInfo?.endCursor
+            morePullRequests = rawPullRequests?.pageInfo?.hasNextPage === true && pCursor !== null
+
+            if (rawPullRequests?.nodes?.length > 0) {
+                for (const pullRequest of rawPullRequests.nodes) {
+                    pullRequestsPromises.push(new Promise(async (resolve) => {
+                        const items: any = await this.getPullRequestNestedItems(ownerLogin, repositoryName, pullRequest.number)
+
+                        resolve({
+                            ...pullRequest,
+                            ...items
+                        })
+                    }))
+                }
+            }
+        }
+
+        const pullRequests: any[] = await Promise.all(pullRequestsPromises)
+
+        return {
+            ...repo,
+            pullRequests: {
+                nodes: pullRequests
+            }
+        }
+    }
+
+    async getPullRequestNestedItems(ownerLogin: string, repositoryName: string, pullRequestNumber: number) {
+        const query = gql`
+            query($ownerLogin: String!, $repositoryName: String!, $pullRequestNumber: Int!, $iCursor: String, $cCursor: String) {
+                repository(owner: $ownerLogin, name: $repositoryName) {
+                    pullRequest(number: $pullRequestNumber) {
+                        closingIssuesReferences(first: 100, after: $iCursor) {
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
+                            nodes {
+                                number
+                                createdAt
+                                closedAt
+                                repository {
+                                    name
+                                    owner {
+                                        login
                                     }
+                                    defaultBranchRef {
+                                        name
+                                    }
+                                    createdAt
+                                    updatedAt
                                 }
                             }
-                            commits(first: 100) {
-                                nodes {
-                                    commit {
-                                        oid
-                                    }
+                        }
+                        commits(first: 100, after: $cCursor) {
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
+                            nodes {
+                                commit {
+                                    oid
                                 }
                             }
                         }
@@ -304,36 +469,66 @@ export class Client {
             }
         `
 
-        return (await this.execute(query, {
-            ownerLogin,
-            repositoryName
-        })).data.repository
-    }
+        let moreIssues = true
+        let moreCommits = true
+        let iCursor = null
+        let cCursor = null
 
-    async getPullRequestWorkItems(projectId: string, repoId: string, pullRequestId: string) {
-        const response = await (await fetch(this.orgUrl + projectId + '/_apis/git/repositories/' + repoId + '/pullrequests/' + pullRequestId + '/workitems?api-version=7.1-preview.1', {
-            method: 'GET',
-            headers: this.getHeaders()
-        })).json()
+        const issues: any[] = []
+        const commits: any[] = []
 
-        if (!response?.value || response.count < 1) {
-            return []
+        while(moreIssues || moreCommits) {
+            const pullRequest: any = (await this.execute(query, {
+                ownerLogin,
+                repositoryName,
+                pullRequestNumber,
+                iCursor,
+                cCursor
+            })).data.repository?.pullRequest
+
+            if (pullRequest?.closingIssuesReferences) {
+                const closingIssuesReferences = pullRequest.closingIssuesReferences
+
+                if (moreIssues) {
+                    iCursor = closingIssuesReferences.pageInfo?.endCursor
+                    moreIssues = closingIssuesReferences.pageInfo?.hasNextPage === true && iCursor !== null
+
+                    if (closingIssuesReferences.nodes?.length > 0) {
+                        for (const issue of closingIssuesReferences.nodes) {
+                            issues.push(issue)
+                        }
+                    }
+                }
+            } else {
+                moreIssues = false
+            }
+
+            if (pullRequest?.commits) {
+                const rawCommits = pullRequest.commits
+
+                if (moreCommits) {
+                    cCursor = rawCommits.pageInfo?.endCursor
+                    moreCommits = rawCommits.pageInfo?.hasNextPage === true && cCursor !== null
+
+                    if (rawCommits.nodes?.length > 0) {
+                        for (const commit of rawCommits.nodes) {
+                            commits.push(commit)
+                        }
+                    }
+                }
+            } else {
+                moreCommits = false
+            }
         }
 
-        return response.value
-    }
-
-    async getPullRequestCommits(projectId: string, repoId: string, pullRequestId: string) {
-        const response = await (await fetch(this.orgUrl + projectId + '/_apis/git/repositories/' + repoId + '/pullrequests/' + pullRequestId + '/commits?api-version=7.1-preview.1', {
-            method: 'GET',
-            headers: this.getHeaders()
-        })).json()
-
-        if (!response?.value || response.count < 1) {
-            return []
+        return {
+            closingIssuesReferences: {
+                nodes: issues
+            },
+            commits: {
+                nodes: commits
+            }
         }
-
-        return response.value
     }
 
     async getCommits(projectId: string, repoId: string) {

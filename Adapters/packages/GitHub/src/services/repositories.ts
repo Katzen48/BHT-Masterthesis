@@ -35,10 +35,7 @@ export async function getRepository(id: string): Promise<Repository> {
 
 export async function getRepositoryIssues(id: string): Promise<Issue[]> {
     const normalizedId: string = decodeURIComponent(id)
-    const [ownerLogin, repositoryName] = normalizedId.split('/')
-
-    //const rawRepo = await global.client.getRepository(projectId, repositoryId)
-    
+    const [ownerLogin, repositoryName] = normalizedId.split('/')    
 
     const response = await global.client.listIssues(ownerLogin, repositoryName)
     const repo: Repository = {
@@ -76,7 +73,7 @@ export async function getRepositoryIssues(id: string): Promise<Issue[]> {
             }
 
             issues.push({
-                id,
+                id: String(id),
                 created_at,
                 closed_at,
                 pull_requests: Array.from(pull_requests),
@@ -92,7 +89,6 @@ export async function getRepositoryPullRequests(id: string): Promise<PullRequest
     const normalizedId: string = decodeURIComponent(id)
     const [ownerLogin, repositoryName] = normalizedId.split('/')
 
-    // TODO pagination
     const response = await global.client.getPullRequests(ownerLogin, repositoryName)
     const repo: Repository = {
         id: encodeURIComponent(response.owner.login + '/' + response.name),
@@ -105,7 +101,7 @@ export async function getRepositoryPullRequests(id: string): Promise<PullRequest
 
     if (response.pullRequests?.nodes?.length > 0) {
         for (const pullRequest of response.pullRequests.nodes) {
-            const id = pullRequest.number
+            const id = String(pullRequest.number)
             const created_at = pullRequest.createdAt
             const closed_at = pullRequest.closedAt
             const merged_at = pullRequest.mergedAt
