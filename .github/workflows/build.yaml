@@ -3,6 +3,9 @@ name: Build & Publish Docker Images
 on:
   push:
     branches: ['main']
+  workflow_dispatch:
+  release:
+    types: [published]
 
 env:
   REGISTRY: ghcr.io
