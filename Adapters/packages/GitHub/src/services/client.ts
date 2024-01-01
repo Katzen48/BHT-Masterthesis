@@ -670,12 +670,50 @@ export class Client {
 
     async listDeployments(ownerLogin: string, repositoryName: string) {
         const endpoint = `repos/${ownerLogin}/${repositoryName}/deployments`
-        return await this.executeRest(endpoint)
+
+        let page = 1
+        let moreDeployments = true
+
+        const deployments: any[] = []
+        while (moreDeployments) {
+            const response: any[] = await this.executeRest(endpoint + '?per_page=100&page=' + page)
+
+            moreDeployments = response && response.length > 99
+            if (response && response.length > 0) {
+                deployments.push(...response)
+            }
+
+            if (moreDeployments) {
+                page++
+            }
+        }
+
+        return deployments
     }
 
     async listEnvironments(ownerLogin: string, repositoryName: string) {
         const endpoint = `repos/${ownerLogin}/${repositoryName}/environments`
-        return await this.executeRest(endpoint)
+
+        let page = 1
+        let moreEnvironments = true
+
+        const environments: any[] = []
+        while (moreEnvironments) {
+            const response: any = await this.executeRest(endpoint + '?per_page=100&page=' + page)
+
+            moreEnvironments = response && response.environments && response.environments.length > 99
+            if (response && response.environments.length > 0) {
+                environments.push(...response.environments)
+            }
+
+            if (moreEnvironments) {
+                page++
+            }
+        }
+
+        return {
+            environments
+        }
     }
 
     private async executeGraph(query: DocumentNode, variables: any = null): Promise<ApolloQueryResult<any>> {
@@ -686,7 +724,7 @@ export class Client {
         })
     }
 
-    private async executeRest(resource: string, method: string = 'GET', body: any = null) {        
+    private async executeRest(resource: string, method: string = 'GET', body: any = null): Promise<any> {        
         return await (await fetch(this.baseUrl + resource, {
             method,
             body,

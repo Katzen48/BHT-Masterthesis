@@ -243,7 +243,7 @@ export async function getRepositoryDeployments(id: string): Promise<Deployment[]
     return deployments
 }
 
-export async function getRepositoryEnvironments(id: string)/*: Promise<Environment[]>*/ {
+export async function getRepositoryEnvironments(id: string): Promise<Environment[]> {
     const normalizedId: string = decodeURIComponent(id)
     const [ownerLogin, repositoryName] = normalizedId.split('/')
 
