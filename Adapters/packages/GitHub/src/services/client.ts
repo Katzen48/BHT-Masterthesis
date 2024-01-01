@@ -531,27 +531,143 @@ export class Client {
         }
     }
 
-    async getCommits(projectId: string, repoId: string) {
-        const response = await (await fetch(this.orgUrl + projectId + '/_apis/git/repositories/' + repoId + '/commits?api-version=7.1-preview.1', {
-            method: 'GET',
-            headers: this.getHeaders()
-        })).json()
+    async getCommits(ownerLogin: string, repositoryName: string) {
+        const query = gql`
+            query($ownerLogin: String!, $repositoryName: String!, $rCursor: String) {
+                repository(owner: $ownerLogin, name: $repositoryName) {
+                    id
+                    owner {
+                        login
+                    }
+                    name
+                    defaultBranchRef {
+                        name
+                    }
+                    createdAt
+                    updatedAt
+                    refs(first: 100, refPrefix: "refs/heads/", after: $rCursor) {
+                        pageInfo {
+                            hasNextPage
+                            endCursor
+                        }
+                        nodes {
+                            name
+                        }
+                    }
+                }
+            }
+        `
 
-        if (!response?.value || response.count < 1) {
-            return []
+        let moreRefs = true
+        let rCursor = null
+
+        const refs: any[] = []
+        let repo: any = null
+        while(moreRefs) {
+            const rawRepo: any = (await this.execute(query, {
+                ownerLogin,
+                repositoryName,
+                rCursor
+            })).data?.repository
+
+            if (repo === null) {
+                repo = {
+                    id: rawRepo?.id,
+                    owner: rawRepo?.owner,
+                    name: rawRepo?.name,
+                    defaultBranchRef: rawRepo?.defaultBranchRef,
+                    createdAt: rawRepo?.createdAt,
+                    updatedAt: rawRepo?.updatedAt
+                }
+            }
+
+            moreRefs = rawRepo?.refs?.pageInfo?.hasNextPage === true
+            rCursor = rawRepo?.refs?.pageInfo?.endCursor
+
+            if (rawRepo.refs?.nodes?.length > 0) {
+                for (const ref of rawRepo.refs.nodes) {
+                    const name = ref.name
+                    const commits = await this.getRefCommits(ownerLogin, repositoryName, name)
+
+                    refs.push({
+                        name,
+                        target: {
+                            history: {
+                                nodes: commits
+                            }
+                        }
+                    })
+                }
+            }
         }
 
-        return response.value
+        return {
+            ...repo,
+            refs: {
+                nodes: refs
+            }
+        }
     }
 
-    async getCommit(projectId: string, repoId: string, commitId: string) {
-        return await (await fetch(this.orgUrl + projectId + '/_apis/git/repositories/' + repoId + '/commits/' + commitId + '?api-version=7.2-preview.2', {
-            method: 'GET',
-            headers: this.getHeaders()
-        })).json()
+    async getRefCommits(ownerLogin: string, repositoryName: string, refName: string) {
+        const query = gql`
+            query($ownerLogin: String!, $repositoryName: String!, $refName: String!, $hCursor: String) {
+                repository(owner: $ownerLogin, name: $repositoryName) {
+                    id
+                    owner {
+                        login
+                    }
+                    name
+                    defaultBranchRef {
+                        name
+                    }
+                    createdAt
+                    updatedAt
+                    ref(qualifiedName: $refName) {
+                        target {
+                          ...on Commit {
+                            history(first: 100, after: $hCursor) {
+                                pageInfo {
+                                    hasNextPage
+                                    endCursor
+                                }
+                                nodes {
+                                    oid
+                                }
+                            }
+                          }
+                        }
+                    }
+                }
+            }
+        `
+
+        let moreCommits = true
+        let hCursor = null
+
+        const commits: any[] = []
+        while(moreCommits) {
+            const rawRepo: any = (await this.execute(query, {
+                ownerLogin,
+                repositoryName,
+                hCursor,
+                refName
+            })).data?.repository
+
+            moreCommits = rawRepo?.ref?.target?.history?.pageInfo?.hasNextPage === true
+            hCursor = rawRepo?.ref?.target?.history?.pageInfo?.endCursor
+
+            if (rawRepo?.ref?.target?.history?.nodes?.length > 0) {
+                for (const commit of rawRepo.ref.target.history.nodes) {
+                    commits.push(commit)
+                }
+            }
+        }
+
+        return commits
     }
 
-    async listPipelines(projectId: string) {
+    async listPipelines(ownerLogin: string, repositoryName: string) {
         const response = await (await fetch(this.orgUrl + projectId + '/_apis/pipelines?api-version=7.2-preview.1', {
             method: 'GET',
             headers: this.getHeaders()

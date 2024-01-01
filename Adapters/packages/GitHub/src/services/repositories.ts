@@ -159,23 +159,36 @@ export async function getRepositoryPullRequests(id: string): Promise<PullRequest
 
 export async function getRepositoryCommits(id: string): Promise<Commit[]> {
     const normalizedId: string = decodeURIComponent(id)
-    const [projectId, repositoryId] = normalizedId.split('/')
+    const [ownerLogin, repositoryName] = normalizedId.split('/')
 
-    const rawRepo = await global.client.getRepository(projectId, repositoryId)
+    const response: any = await global.client.getCommits(ownerLogin, repositoryName)
     const repo: Repository = {
-        id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
-        full_name: rawRepo.name,
-        default_branch: rawRepo.defaultBranch,
-        created_at: null,
-        updated_at: null 
+        id: encodeURIComponent(response.owner.login + '/' + response.name),
+        full_name: response.name,
+        default_branch: response.defaultBranchRef?.name,
+        created_at: response.createdAt,
+        updated_at: response.updatedAt
     }
 
-    const commits: Commit[] = (await global.client.getCommits(projectId, repositoryId)).map(commit => {
-        return {
-            sha: commit.commitId,
-            repo
+    const commitIds: Set<string> = new Set()
+
+    if (response.refs?.nodes?.length > 0) {
+        for (const ref of response.refs.nodes) {
+            if (ref.target?.history?.nodes?.length > 0) {
+                for (const commit of ref.target.history.nodes) {
+                    commitIds.add(commit.oid)
+                }
+            }
         }
-    })
+    }
+
+    const commits: Commit[] = []
+    for (const sha of commitIds) {
+        commits.push({
+            sha,
+            repo
+        })
+    }
 
     return commits
 }
@@ -203,7 +216,7 @@ export async function getRepositoryPipelines(id: string): Promise<any[]> {
     return commits
 }
 
-export async function getRepositoryDeployments(id: string)/*: Promise<Deployment[]>*/ {
+export async function getRepositoryDeployments(id: string): Promise<Deployment[]> {
     const normalizedId: string = decodeURIComponent(id)
     const [projectId, repositoryId] = normalizedId.split('/')
 
