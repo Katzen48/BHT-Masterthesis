@@ -11,7 +11,7 @@ export interface Deployment {
     commit: Commit
     ref: string
     task: string
-    environment?: Environment
+    environment?: Environment|null
     created_at: Date
     updated_at: Date
 }

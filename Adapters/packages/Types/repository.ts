@@ -5,7 +5,7 @@ export interface Repositories {
 export interface Repository {
     id: string
     full_name: string
-    default_branch: string
-    created_at: Date
-    updated_at: Date
+    default_branch: string|null
+    created_at: Date|null
+    updated_at: Date|null
 }

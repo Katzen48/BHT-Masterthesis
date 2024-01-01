@@ -5,6 +5,6 @@ export interface Environments {
 export interface Environment {
     id: string
     name: string
-    created_at: Date
-    updated_at: Date
+    created_at: Date|null
+    updated_at: Date|null
 }

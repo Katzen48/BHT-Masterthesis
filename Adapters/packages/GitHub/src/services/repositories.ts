@@ -1,5 +1,4 @@
-import {Issue, PullRequest, Repository, Head, Commit, Deployment} from 'types'
-import {chunk} from '../utils'
+import {Issue, PullRequest, Repository, Head, Commit, Deployment, Environment} from 'types'
 import { global } from '@apollo/client/utilities/globals'
 
 export async function listRepositories(): Promise<Repository[]> {
@@ -193,67 +192,74 @@ export async function getRepositoryCommits(id: string): Promise<Commit[]> {
     return commits
 }
 
-export async function getRepositoryPipelines(id: string): Promise<any[]> {
-    const normalizedId: string = decodeURIComponent(id)
-    const [projectId, repositoryId] = normalizedId.split('/')
-
-    const rawRepo = await global.client.getRepository(projectId, repositoryId)
-    const repo: Repository = {
-        id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
-        full_name: rawRepo.name,
-        default_branch: rawRepo.defaultBranch,
-        created_at: null,
-        updated_at: null 
-    }
-
-    const commits: Commit[] = (await global.client.getCommits(projectId, repositoryId)).map(commit => {
-        return {
-            sha: commit.commitId,
-            repo
-        }
-    })
-
-    return commits
-}
-
 export async function getRepositoryDeployments(id: string): Promise<Deployment[]> {
     const normalizedId: string = decodeURIComponent(id)
-    const [projectId, repositoryId] = normalizedId.split('/')
+    const [ownerLogin, repositoryName] = normalizedId.split('/')
 
-    const rawRepo = await global.client.getRepository(projectId, repositoryId)
+    const rawRepo: any = await global.client.getRepository(ownerLogin, repositoryName)
     const repo: Repository = {
-        id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
+        id: encodeURIComponent(rawRepo.owner.login + '/' + rawRepo.name),
         full_name: rawRepo.name,
-        default_branch: rawRepo.defaultBranch,
-        created_at: null,
-        updated_at: null 
+        default_branch: rawRepo.defaultBranchRef?.name,
+        created_at: rawRepo.createdAt,
+        updated_at: rawRepo.updatedAt
     }
 
-    const pipelineIds = (await global.client.listPipelines(projectId)).flatMap(pipeline => pipeline.id)
+    const response = await global.client.listDeployments(ownerLogin, repositoryName)
 
     const deployments: Deployment[] = []
-    for (const pipelineId of pipelineIds) {
-        const runs = await global.client.listPipelineRuns(projectId, pipelineId)
-        const detailedRuns = []
-        for (const run of runs) {
-            const detailedRun = await global.client.getPipelineRun(projectId, pipelineId, run.id)
-            const repoResource = detailedRun.resources?.repositories?.self
+    if (response?.length > 0) {
+        for (const deployment of response) {
+            const id = String(deployment.id)
+            const sha = deployment.sha
+            const commit: Commit = {
+                sha: deployment.sha,
+                repo
+            }
+            const ref = deployment.ref
+            const task = deployment.task
+            const environment: Environment|null = deployment.environment ? {
+                id: deployment.environment,
+                name: deployment.environment,
+                created_at: null,
+                updated_at: null
+            } : null
+            const created_at = deployment.created_at
+            const updated_at = deployment.updated_at
 
             deployments.push({
-                id: detailedRun.id,
-                sha: repoResource?.version,
-                commit: {
-                    sha: repoResource?.version,
-                    repo
-                },
-                ref: repoResource?.refName,
-                task: detailedRun.pipeline.name,
-                environment: null,
-                created_at: detailedRun.createdDate,
-                updated_at: detailedRun.finishedDate
+                id,
+                sha,
+                commit,
+                ref,
+                task,
+                environment,
+                created_at,
+                updated_at
             })
         }
     }
 
     return deployments
+}
+
+export async function getRepositoryEnvironments(id: string)/*: Promise<Environment[]>*/ {
+    const normalizedId: string = decodeURIComponent(id)
+    const [ownerLogin, repositoryName] = normalizedId.split('/')
+
+    const response = await global.client.listEnvironments(ownerLogin, repositoryName)
+    
+    const environments: Environment[] = []
+    if (response?.environments?.length > 0) {
+        for (const environment of response.environments) {            
+            environments.push({
+                id: String(environment.name),
+                name: environment.name,
+                created_at: environment.created_at,
+                updated_at: environment.updated_at
+            })
+        }
+    }
+
+    return environments
 }

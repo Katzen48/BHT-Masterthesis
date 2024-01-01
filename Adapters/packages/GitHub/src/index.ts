@@ -2,7 +2,7 @@ import * as Router from "./router"
 import * as Authenticator from "./authenticator"
 import {Client} from './services/client'
 
-global.client = Client.personalAccessToken(process.env.ORG_URL || 'https://api.github.com/graphql', process.env.PAT || 'test')
+global.client = Client.personalAccessToken(process.env.ORG_URL || 'https://api.github.com/', process.env.PAT || 'test')
 
 const server = Bun.serve({
     port: 3000,

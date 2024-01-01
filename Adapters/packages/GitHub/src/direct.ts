@@ -1,4 +1,4 @@
-import {listRepositories, getRepository, getRepositoryIssues, getRepositoryPullRequests, getRepositoryCommits, getRepositoryDeployments} from "./services/repositories"
+import {listRepositories, getRepository, getRepositoryIssues, getRepositoryPullRequests, getRepositoryCommits, getRepositoryDeployments, getRepositoryEnvironments} from "./services/repositories"
 
 export async function handleDirect(request: Request, pathParts: string[], searchParams: URLSearchParams): Promise<Response> {
     if (pathParts.length > 1) {
@@ -29,7 +29,7 @@ async function handleRepos(request: Request, pathParts: string[], searchParams: 
             case 'deployments':
                 return Response.json(await getRepositoryDeployments(pathParts[2]))
             case 'environments':
-                return Response.json([])
+                return Response.json(await getRepositoryEnvironments(pathParts[2]))
         }
     }
 

@@ -14,8 +14,9 @@ export class Client {
         this.token = token
 
 
+        const graphUrl = baseUrl + 'graphql'
         const httpLink: ApolloLink = createHttpLink({
-            uri: baseUrl
+            uri: graphUrl
         })
         const authLink = new ApolloLink((operation, forward) => {
             operation.setContext({
@@ -80,7 +81,7 @@ export class Client {
         let oCursor = null
 
         while(moreRepos || moreOrgs) {
-            const viewer: any = (await this.execute(query, {
+            const viewer: any = (await this.executeGraph(query, {
                 rCursor,
                 oCursor
             })).data?.viewer
@@ -154,7 +155,7 @@ export class Client {
 
         const repos: any[] = []
         while(moreRepos) {
-            const organization: any = (await this.execute(query, {
+            const organization: any = (await this.executeGraph(query, {
                 rCursor,
                 organizationLogin
             })).data?.organization
@@ -190,7 +191,7 @@ export class Client {
             }
         `
 
-        return (await this.execute(query, {
+        return (await this.executeGraph(query, {
             ownerLogin,
             repositoryName
         })).data.repository
@@ -231,7 +232,7 @@ export class Client {
 
         const issues: any[] = []
         while(moreIssues) {
-            const rawRepo: any = (await this.execute(query, {
+            const rawRepo: any = (await this.executeGraph(query, {
                 ownerLogin,
                 repositoryName,
                 iCursor
@@ -322,7 +323,7 @@ export class Client {
 
         const timelineItems: any[] = []
         while(moreItems) {
-            const items: any = (await this.execute(query, {
+            const items: any = (await this.executeGraph(query, {
                 ownerLogin,
                 repositoryName,
                 issueNumber,
@@ -380,7 +381,7 @@ export class Client {
 
         const pullRequestsPromises: Promise<any>[] = []
         while(morePullRequests) {
-            const rawRepo: any = (await this.execute(query, {
+            const rawRepo: any = (await this.executeGraph(query, {
                 ownerLogin,
                 repositoryName,
                 pCursor
@@ -478,7 +479,7 @@ export class Client {
         const commits: any[] = []
 
         while(moreIssues || moreCommits) {
-            const pullRequest: any = (await this.execute(query, {
+            const pullRequest: any = (await this.executeGraph(query, {
                 ownerLogin,
                 repositoryName,
                 pullRequestNumber,
@@ -564,7 +565,7 @@ export class Client {
         const refs: any[] = []
         let repo: any = null
         while(moreRefs) {
-            const rawRepo: any = (await this.execute(query, {
+            const rawRepo: any = (await this.executeGraph(query, {
                 ownerLogin,
                 repositoryName,
                 rCursor
@@ -647,7 +648,7 @@ export class Client {
 
         const commits: any[] = []
         while(moreCommits) {
-            const rawRepo: any = (await this.execute(query, {
+            const rawRepo: any = (await this.executeGraph(query, {
                 ownerLogin,
                 repositoryName,
                 hCursor,
@@ -667,44 +668,37 @@ export class Client {
         return commits
     }
 
-    async listPipelines(ownerLogin: string, repositoryName: string) {
-        const response = await (await fetch(this.orgUrl + projectId + '/_apis/pipelines?api-version=7.2-preview.1', {
-            method: 'GET',
-            headers: this.getHeaders()
-        })).json()
-
-        if (!response?.value || response.count < 1) {
-            return []
-        }
-
-        return response.value
+    async listDeployments(ownerLogin: string, repositoryName: string) {
+        const endpoint = `repos/${ownerLogin}/${repositoryName}/deployments`
+        return await this.executeRest(endpoint)
     }
 
-    async listPipelineRuns(projectId: string, pipelineId: number) {
-        const response = await (await fetch(this.orgUrl + projectId + '/_apis/pipelines/' + pipelineId + '/runs?api-version=7.2-preview.1', {
-            method: 'GET',
-            headers: this.getHeaders()
-        })).json()
-
-        if (!response?.value || response.count < 1) {
-            return []
-        }
-
-        return response.value
+    async listEnvironments(ownerLogin: string, repositoryName: string) {
+        const endpoint = `repos/${ownerLogin}/${repositoryName}/environments`
+        return await this.executeRest(endpoint)
     }
 
-    async getPipelineRun(projectId: string, pipelineId: number, runId: number) {
-        return await (await fetch(this.orgUrl + projectId + '/_apis/pipelines/' + pipelineId + '/runs/' + runId + '?api-version=7.2-preview.1', {
-            method: 'GET',
-            headers: this.getHeaders()
-        })).json()
-    }
-
-    private async execute(query: DocumentNode, variables: any = null): Promise<ApolloQueryResult<any>> {
+    private async executeGraph(query: DocumentNode, variables: any = null): Promise<ApolloQueryResult<any>> {
         return await this.client.query({
             query,
             variables,
             fetchPolicy: 'no-cache'
         })
+    }
+
+    private async executeRest(resource: string, method: string = 'GET', body: any = null) {        
+        return await (await fetch(this.baseUrl + resource, {
+            method,
+            body,
+            headers: this.getHeaders()
+        })).json()
+    }
+
+    private getHeaders() {
+        return {
+            'Authorization': 'bearer ' + this.token,
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Accept': 'application/vnd.github+json'
+        }
     }
 }
