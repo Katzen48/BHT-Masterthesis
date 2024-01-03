@@ -12,17 +12,17 @@ type Adapter struct {
 }
 
 type DatabaseConfig struct {
-	Hosts    []string `json:"host,omitempty"`
-	Username string   `json:"username,omitempty"`
-	Password string   `json:"password,omitempty"`
-	Keyspace string   `json:"keyspace,omitempty"`
+	Hosts    []string `yaml:"host,omitempty"`
+	Username string   `yaml:"username,omitempty"`
+	Password string   `yaml:"password,omitempty"`
+	Keyspace string   `yaml:"keyspace,omitempty"`
 }
 
 type BaseDatabaseConfig struct {
-	Host     string `json:"host,omitempty"`
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-	Database string `json:"database,omitempty"`
+	Host     string `yaml:"host,omitempty"`
+	Username string `yaml:"username,omitempty"`
+	Password string `yaml:"password,omitempty"`
+	Database string `yaml:"database,omitempty"`
 }
 
 type Config struct {
