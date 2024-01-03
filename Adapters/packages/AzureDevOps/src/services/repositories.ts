@@ -35,7 +35,7 @@ export async function getRepository(id: string): Promise<Repository> {
     const repository = await global.client.getRepository(projectId, repositoryId)
 
     return {
-        id: repository.project.id + '/' + repository.id,
+        id: encodeURIComponent(repository.project.id + '/' + repository.id),
         full_name: repository.name,
         default_branch: repository.defaultBranch,
         created_at: null,
@@ -75,11 +75,11 @@ export async function getRepositoryIssues(id: string): Promise<Issue[]> {
 
     return issueResults.map(issue => {
         const pull_requests = issue.relations?.filter(relation => relation.rel === 'ArtifactLink' && relation.url?.includes('PullRequestId') && relation.attributes?.id).map(pullRequest => {
-            return pullRequest.attributes.id
+            return String(pullRequest.attributes.id)
         })
 
         return {
-            id: issue.id,
+            id: String(issue.id),
             pull_requests,
             created_at: issue.fields['System.CreatedDate'],
             closed_at: issue.fields['Microsoft.VSTS.Common.ClosedDate'],
@@ -108,7 +108,7 @@ export async function getRepositoryPullRequests(id: string): Promise<PullRequest
     for (const pullRequest of results) {
         const issues: Issue[] = (await global.client.getPullRequestWorkItems(projectId, repositoryId, pullRequest.pullRequestId)).map(workItem => {
             return {
-                id: workItem.id
+                id: String(workItem.id)
             }
         })
 
@@ -127,7 +127,7 @@ export async function getRepositoryPullRequests(id: string): Promise<PullRequest
             sha: pullRequest.lastMergeTargetCommit.commitId
         }
         pullRequests.push({
-            id: pullRequest.pullRequestId,
+            id: String(pullRequest.pullRequestId),
             created_at: pullRequest.creationDate,
             closed_at: pullRequest.closedDate,
             repo,
@@ -212,7 +212,7 @@ export async function getRepositoryDeployments(id: string)/*: Promise<Deployment
             const repoResource = detailedRun.resources?.repositories?.self
 
             deployments.push({
-                id: detailedRun.id,
+                id: String(detailedRun.id),
                 sha: repoResource?.version,
                 commit: {
                     sha: repoResource?.version,

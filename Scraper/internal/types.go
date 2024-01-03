@@ -11,9 +11,25 @@ type Adapter struct {
 	Token   string `yaml:"token"`
 }
 
+type DatabaseConfig struct {
+	Hosts    []string `json:"host,omitempty"`
+	Username string   `json:"username,omitempty"`
+	Password string   `json:"password,omitempty"`
+	Keyspace string   `json:"keyspace,omitempty"`
+}
+
+type BaseDatabaseConfig struct {
+	Host     string `json:"host,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+	Database string `json:"database,omitempty"`
+}
+
 type Config struct {
 	Adapters     []Adapter          `yaml:"adapters"`
 	Repositories []ConfigRepository `yaml:"repositories"`
+	Database     DatabaseConfig     `yaml:"metricsdatabase"`
+	BaseData     BaseDatabaseConfig `json:"baseData"`
 }
 
 // HTTP Response Types
@@ -54,4 +70,22 @@ type PullRequest struct {
 type Issue struct {
 	WorkItem
 	PullRequests []string `json:"pull_requests"`
+}
+
+type Environment struct {
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	CreatedAt string `json:"created_At"`
+	UpdatedAt string `json:"updated_At"`
+}
+
+type Deployment struct {
+	Id          string      `json:"id"`
+	Sha         string      `json:"sha"`
+	Commit      Commit      `json:"commit"`
+	Ref         string      `json:"ref"`
+	Task        string      `json:"task"`
+	Environment Environment `json:"environment"`
+	CreatedAt   string      `json:"created_At"`
+	UpdatedAt   string      `json:"updated_At"`
 }
