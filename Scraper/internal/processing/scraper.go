@@ -10,6 +10,8 @@ import (
 	"thesis/scraper/internal/basedatabase"
 )
 
+var chunkSize int = 20000
+
 func HandleRepository(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient) {
 	requestIssues(repository, adapter, client)
 	requestCommits(repository, adapter, client)
@@ -37,9 +39,34 @@ func requestIssues(repository internal.ConfigRepository, adapter internal.Adapte
 	issues = request(adapter, fmt.Sprintf("direct/repos/%s/issues", repository.Id), issues)
 
 	if (issues != nil) && (len(issues) > 0) {
-		for _, issue := range issues {
-			jsonValue, _ := json.Marshal(issue)
-			basedatabase.InsertJson(client, "INSERT INTO issues VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `json` = ?", issue.Repo.Id, issue.ID, string(jsonValue), string(jsonValue))
+		var chunks [][]internal.Issue
+
+		for i := 0; i < len(issues); i += chunkSize {
+			end := i + chunkSize
+
+			if end > len(issues) {
+				end = len(issues)
+			}
+
+			chunks = append(chunks, issues[i:end])
+		}
+
+		for _, chunk := range chunks {
+			var valuesPlaceholder = ""
+			var values []any
+
+			for i, issue := range chunk {
+				if i > 0 {
+					valuesPlaceholder += ","
+				}
+				valuesPlaceholder += "(?,?,?)"
+
+				jsonValue, _ := json.Marshal(issue)
+				values = append(values, issue.Repo.Id, issue.ID, string(jsonValue))
+			}
+
+			statement := fmt.Sprintf("INSERT INTO issues (`repo`, `id`, `json`) VALUES %s ON DUPLICATE KEY UPDATE `json` = VALUES(`json`)", valuesPlaceholder)
+			basedatabase.InsertJson(client, statement, values...)
 		}
 
 		//ProcessIssues(issues)
