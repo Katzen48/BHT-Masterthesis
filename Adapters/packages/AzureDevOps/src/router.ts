@@ -7,15 +7,17 @@ export async function handleRequest(request: Request): Promise<Response> {
     const pathParts = pathname.toLocaleLowerCase().split('/')
 
     if (pathParts.length > 0) {
-        if (pathParts[0] === '') {
-            pathParts.shift()
+        while(pathParts.length > 0 && pathParts[0] === '') {
+            pathParts.shift();
         }
-        if (pathParts[pathParts.length - 1] === '') {
-            pathParts.pop()
-        }
-
-        if (pathParts[0] === 'direct') {
-            return await handleDirect(request, pathParts, searchParams)
+        if (pathParts.length > 0) {
+            if (pathParts[pathParts.length - 1] === '') {
+                pathParts.pop()
+            }
+    
+            if (pathParts[0] === 'direct') {
+                return await handleDirect(request, pathParts, searchParams)
+            }
         }
     }
 
