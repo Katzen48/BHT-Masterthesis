@@ -19,5 +19,6 @@ export async function handleRequest(request: Request): Promise<Response> {
         }
     }
 
+    console.debug('Empty for url', request.url, 'path:', pathname, 'path parts:', pathParts)
     return new Response('Empty from handleRequest')
 }
