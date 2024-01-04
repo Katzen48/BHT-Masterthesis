@@ -90,24 +90,38 @@ export class Client {
     }
 
     async listWorkItems(projectId: string, teamId: string) {
-        const query = 'SELECT [System.Id] FROM workitems'
+        const queryTemplate = 'SELECT [System.Id] FROM workitems ORDER BY [System.Id]'
 
-        const response = await (await fetch(this.orgUrl + projectId + '/' + teamId + '/_apis/wit/wiql/?api-version=7.2-preview.2', {
-            method: 'POST',
-            headers: {
-                ...this.getHeaders(),
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                query
-            })
-        })).json()
+        const workItems: any[] = []
+        let empty = false
+        let lastId = 0
+        while (!empty) {
+            const lowerLimit = lastId
+            const upperLimit = (lastId += 20000)
+            const query = `${queryTemplate} WHERE ID > ${lowerLimit} AND ID < ${upperLimit}`
 
-        if (!response?.workItems) {
-            return []
+            try {
+                const response: any = await (await fetch(this.orgUrl + projectId + '/' + teamId + '/_apis/wit/wiql/?api-version=7.2-preview.2', {
+                    method: 'POST',
+                    headers: {
+                        ...this.getHeaders(),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query
+                    })
+                })).json()
+
+                empty = !response?.workItems || response.workItems.length < 1
+                if (!empty) {
+                    workItems.push(...response.workItems)
+                }
+            } catch (error) {
+                console.log(error)
+            }
         }
 
-        return response.workItems
+        return workItems
     }
 
     async getWorkItem(projectId: string, ids: number[]) {
