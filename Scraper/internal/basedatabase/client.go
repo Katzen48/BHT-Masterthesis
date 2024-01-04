@@ -16,7 +16,7 @@ type DatabaseClient struct {
 
 func CreateClient(config internal.BaseDatabaseConfig) *DatabaseClient {
 	var err error
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s", config.Username, config.Password, config.Host, config.Database))
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s?tls=preferred", config.Username, config.Password, config.Host, config.Database))
 	if err != nil {
 		internal.ProcessError(err)
 		return nil
