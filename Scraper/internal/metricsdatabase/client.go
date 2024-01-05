@@ -14,6 +14,10 @@ type DatabaseClient struct {
 func CreateClient(config internal.DatabaseConfig) *DatabaseClient {
 	cluster := gocql.NewCluster(config.Hosts...)
 	cluster.Keyspace = config.Keyspace
+	cluster.Authenticator = gocql.PasswordAuthenticator{
+		Username: config.Username,
+		Password: config.Password,
+	}
 
 	return &DatabaseClient{config: config, cluster: cluster}
 }
@@ -28,6 +32,12 @@ func Connect(client *DatabaseClient) {
 	if err != nil {
 		internal.ProcessError(err)
 		return
+	}
+}
+
+func Close(client *DatabaseClient) {
+	if IsConnected(client) {
+		client.session.Close()
 	}
 }
 

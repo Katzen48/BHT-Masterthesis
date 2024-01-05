@@ -17,13 +17,14 @@ var baseDatabase *basedatabase.DatabaseClient
 
 func main() {
 	readConfig()
-	//connectToDatabase()
+	connectToDatabase()
+	defer metricsdatabase.Close(metricsDatabase)
 	connectToBaseDatabase()
 	defer basedatabase.Close(baseDatabase)
 
 	for _, repository := range config.Repositories {
 		fmt.Printf("Processing Repo %s\n", repository.Id)
-		processing.HandleRepository(repository, findAdapter(repository, config.Adapters), baseDatabase)
+		processing.HandleRepository(repository, findAdapter(repository, config.Adapters), baseDatabase, metricsDatabase)
 	}
 }
 

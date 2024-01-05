@@ -8,19 +8,20 @@ import (
 	"strings"
 	"thesis/scraper/internal"
 	"thesis/scraper/internal/basedatabase"
+	"thesis/scraper/internal/metricsdatabase"
 )
 
 var chunkSize = 20000
 
-func HandleRepository(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient) {
-	requestIssues(repository, adapter, client)
-	requestCommits(repository, adapter, client)
-	requestPullRequests(repository, adapter, client)
-	requestDeployments(repository, adapter, client)
-	requestEnvironments(repository, adapter, client)
+func HandleRepository(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
+	requestIssues(repository, adapter, client, metricsClient)
+	requestCommits(repository, adapter, client, metricsClient)
+	requestPullRequests(repository, adapter, client, metricsClient)
+	requestDeployments(repository, adapter, client, metricsClient)
+	requestEnvironments(repository, adapter, client, metricsClient)
 }
 
-func requestPullRequests(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient) {
+func requestPullRequests(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
 	var pullRequests []internal.PullRequest
 	pullRequests = request(adapter, fmt.Sprintf("direct/repos/%s/pulls", repository.Id), pullRequests)
 
@@ -34,7 +35,7 @@ func requestPullRequests(repository internal.ConfigRepository, adapter internal.
 	}
 }
 
-func requestIssues(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient) {
+func requestIssues(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
 	var issues []internal.Issue
 	issues = request(adapter, fmt.Sprintf("direct/repos/%s/issues", repository.Id), issues)
 
@@ -73,7 +74,7 @@ func requestIssues(repository internal.ConfigRepository, adapter internal.Adapte
 	}
 }
 
-func requestCommits(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient) {
+func requestCommits(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
 	var commits []internal.Commit
 	commits = request(adapter, fmt.Sprintf("direct/repos/%s/commits", repository.Id), commits)
 
@@ -87,7 +88,7 @@ func requestCommits(repository internal.ConfigRepository, adapter internal.Adapt
 	}
 }
 
-func requestDeployments(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient) {
+func requestDeployments(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
 	var deployments []internal.Deployment
 	deployments = request(adapter, fmt.Sprintf("direct/repos/%s/deployments", repository.Id), deployments)
 
@@ -101,7 +102,7 @@ func requestDeployments(repository internal.ConfigRepository, adapter internal.A
 	}
 }
 
-func requestEnvironments(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient) {
+func requestEnvironments(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
 	var environments []internal.Environment
 	environments = request(adapter, fmt.Sprintf("direct/repos/%s/environments", repository.Id), environments)
 

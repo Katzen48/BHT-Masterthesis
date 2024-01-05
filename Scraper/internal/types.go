@@ -12,7 +12,7 @@ type Adapter struct {
 }
 
 type DatabaseConfig struct {
-	Hosts    []string `yaml:"host,omitempty"`
+	Hosts    []string `yaml:"hosts,omitempty"`
 	Username string   `yaml:"username,omitempty"`
 	Password string   `yaml:"password,omitempty"`
 	Keyspace string   `yaml:"keyspace,omitempty"`
