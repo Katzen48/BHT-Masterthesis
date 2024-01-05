@@ -67,8 +67,6 @@ export class Client {
     }
 
     async getProject(projectId: string) {
-        console.log(projectId)
-
         return await (await this.executeRequest(this.orgUrl + '_apis/projects/' + projectId + '?api-version=7.2-preview.4', {
             method: 'GET',
             headers: this.getHeaders()
@@ -245,7 +243,6 @@ export class Client {
             this.units.shift()
             this.units.push(Number(response.headers.has('X-RateLimit-Remaining')))
         }
-        console.debug(response.headers)
 
         return response
     }
@@ -279,8 +276,6 @@ export class Client {
             this.timeTillNextInvocation = Math.max(this.minTimeNextInvoc, this.timeTillNextInvocation + change)
             waitTime = this.timeTillNextInvocation
         }
-        console.debug('Wait Time:', waitTime)
-        console.debug('Units:', this.units)
 
         return waitTime
     }
