@@ -1,5 +1,7 @@
 package internal
 
+import "time"
+
 type ConfigRepository struct {
 	Id      string `yaml:"id"`
 	Adapter string `yaml:"adapter"`
@@ -34,37 +36,37 @@ type Config struct {
 
 // HTTP Response Types
 type Repository struct {
-	Id            string `json:"id"`
-	FullName      string `json:"full_name"`
-	DefaultBranch string `json:"default_branch"`
-	CreatedAt     string `json:"created_at"`
-	UpdatedAt     string `json:"updated_at"`
+	Id            string    `json:"id"`
+	FullName      string    `json:"full_name"`
+	DefaultBranch string    `json:"default_branch"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type WorkItem struct {
-	ID        string     `json:"id"`
-	CreatedAt string     `json:"created_at"`
-	ClosedAt  string     `json:"closed_at"`
-	Repo      Repository `json:"repo"`
+	ID        string      `json:"id"`
+	CreatedAt time.Time   `json:"created_at"`
+	ClosedAt  time.Time   `json:"closed_at"`
+	Repo      *Repository `json:"repo"`
 }
 
 type Head struct {
-	Ref string `json:"ref"`
-	Sha string `json:"sha"`
+	Ref string `json:"ref" cql:"ref"`
+	Sha string `json:"sha" cql:"id"`
 }
 
 type Commit struct {
-	Sha  string     `json:"sha"`
-	Repo Repository `json:"repo"`
+	Sha  string      `json:"sha"`
+	Repo *Repository `json:"repo"`
 }
 
 type PullRequest struct {
 	WorkItem
-	Head     Head     `json:"head"`
-	Base     Head     `json:"base"`
-	MergedAt string   `json:"merged_at"`
-	Issues   []Issue  `json:"issues"`
-	Commits  []Commit `json:"commits"`
+	Head     *Head     `json:"head"`
+	Base     *Head     `json:"base"`
+	MergedAt time.Time `json:"merged_at"`
+	Issues   []Issue   `json:"issues"`
+	Commits  []Commit  `json:"commits"`
 }
 
 type Issue struct {
@@ -73,19 +75,19 @@ type Issue struct {
 }
 
 type Environment struct {
-	Id        string `json:"id"`
-	Name      string `json:"name"`
-	CreatedAt string `json:"created_At"`
-	UpdatedAt string `json:"updated_At"`
+	Id        string    `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_At"`
+	UpdatedAt time.Time `json:"updated_At"`
 }
 
 type Deployment struct {
-	Id          string      `json:"id"`
-	Sha         string      `json:"sha"`
-	Commit      Commit      `json:"commit"`
-	Ref         string      `json:"ref"`
-	Task        string      `json:"task"`
-	Environment Environment `json:"environment"`
-	CreatedAt   string      `json:"created_At"`
-	UpdatedAt   string      `json:"updated_At"`
+	Id          string       `json:"id"`
+	Sha         string       `json:"sha"`
+	Commit      *Commit      `json:"commit"`
+	Ref         string       `json:"ref"`
+	Task        string       `json:"task"`
+	Environment *Environment `json:"environment"`
+	CreatedAt   time.Time    `json:"created_At"`
+	UpdatedAt   time.Time    `json:"updated_At"`
 }

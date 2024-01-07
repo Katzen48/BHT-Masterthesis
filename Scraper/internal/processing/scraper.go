@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"thesis/scraper/internal"
 	"thesis/scraper/internal/basedatabase"
 	"thesis/scraper/internal/metricsdatabase"
@@ -13,43 +14,48 @@ import (
 
 var chunkSize = 20000
 
-func HandleRepository(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
-	requestIssues(repository, adapter, client, metricsClient)
-	requestCommits(repository, adapter, client, metricsClient)
-	requestPullRequests(repository, adapter, client, metricsClient)
-	requestDeployments(repository, adapter, client, metricsClient)
-	requestEnvironments(repository, adapter, client, metricsClient)
+func HandleRepository(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient, group *sync.WaitGroup) {
+	var issues []internal.Issue
+	var commits []internal.Commit
+	var pullRequests []internal.PullRequest
+	var deployments []internal.Deployment
+	var environments []internal.Environment
+
+	requestIssues(repository, adapter, client, &issues)
+	requestCommits(repository, adapter, client, &commits)
+	requestPullRequests(repository, adapter, client, &pullRequests)
+	requestDeployments(repository, adapter, client, &deployments)
+	requestEnvironments(repository, adapter, client, &environments)
+
+	group.Add(1)
+	go Process(issues, commits, pullRequests, deployments, environments, adapter, metricsClient, group)
 }
 
-func requestPullRequests(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
-	var pullRequests []internal.PullRequest
+func requestPullRequests(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, pullRequests *[]internal.PullRequest) {
 	pullRequests = request(adapter, fmt.Sprintf("direct/repos/%s/pulls", repository.Id), pullRequests)
 
-	if (pullRequests != nil) && (len(pullRequests) > 0) {
-		for _, pullRequest := range pullRequests {
+	if (pullRequests != nil) && (len(*pullRequests) > 0) {
+		for _, pullRequest := range *pullRequests {
 			jsonValue, _ := json.Marshal(pullRequest)
 			go basedatabase.InsertJson(client, "INSERT INTO pull_requests VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `json` = ?", pullRequest.Repo.Id, pullRequest.ID, string(jsonValue), string(jsonValue))
 		}
-
-		//ProcessPullRequests(pullRequests)
 	}
 }
 
-func requestIssues(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
-	var issues []internal.Issue
+func requestIssues(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, issues *[]internal.Issue) {
 	issues = request(adapter, fmt.Sprintf("direct/repos/%s/issues", repository.Id), issues)
 
-	if (issues != nil) && (len(issues) > 0) {
+	if (issues != nil) && (len(*issues) > 0) {
 		var chunks [][]internal.Issue
 
-		for i := 0; i < len(issues); i += chunkSize {
+		for i := 0; i < len(*issues); i += chunkSize {
 			end := i + chunkSize
 
-			if end > len(issues) {
-				end = len(issues)
+			if end > len(*issues) {
+				end = len(*issues)
 			}
 
-			chunks = append(chunks, issues[i:end])
+			chunks = append(chunks, (*issues)[i:end])
 		}
 
 		for _, chunk := range chunks {
@@ -69,50 +75,39 @@ func requestIssues(repository internal.ConfigRepository, adapter internal.Adapte
 			statement := fmt.Sprintf("INSERT INTO issues (`repo`, `id`, `json`) VALUES %s ON DUPLICATE KEY UPDATE `json` = VALUES(`json`)", valuesPlaceholder)
 			go basedatabase.InsertJson(client, statement, values...)
 		}
-
-		//ProcessIssues(issues)
 	}
 }
 
-func requestCommits(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
-	var commits []internal.Commit
+func requestCommits(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, commits *[]internal.Commit) {
 	commits = request(adapter, fmt.Sprintf("direct/repos/%s/commits", repository.Id), commits)
 
-	if (commits != nil) && (len(commits) > 0) {
-		for _, commit := range commits {
+	if (commits != nil) && (len(*commits) > 0) {
+		for _, commit := range *commits {
 			jsonValue, _ := json.Marshal(commit)
 			go basedatabase.InsertJson(client, "INSERT INTO commits VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `json` = ?", commit.Repo.Id, commit.Sha, string(jsonValue), string(jsonValue))
 		}
-
-		//ProcessCommits(commits)
 	}
 }
 
-func requestDeployments(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
-	var deployments []internal.Deployment
+func requestDeployments(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, deployments *[]internal.Deployment) {
 	deployments = request(adapter, fmt.Sprintf("direct/repos/%s/deployments", repository.Id), deployments)
 
-	if (deployments != nil) && (len(deployments) > 0) {
-		for _, deployment := range deployments {
+	if (deployments != nil) && (len(*deployments) > 0) {
+		for _, deployment := range *deployments {
 			jsonValue, _ := json.Marshal(deployment)
 			go basedatabase.InsertJson(client, "INSERT IGNORE INTO deployments VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `json` = ?", repository.Id, deployment.Id, string(jsonValue), string(jsonValue))
 		}
-
-		//ProcessDeployments(deployments)
 	}
 }
 
-func requestEnvironments(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, metricsClient *metricsdatabase.DatabaseClient) {
-	var environments []internal.Environment
+func requestEnvironments(repository internal.ConfigRepository, adapter internal.Adapter, client *basedatabase.DatabaseClient, environments *[]internal.Environment) {
 	environments = request(adapter, fmt.Sprintf("direct/repos/%s/environments", repository.Id), environments)
 
-	if (environments != nil) && (len(environments) > 0) {
-		for _, environment := range environments {
+	if (environments != nil) && (len(*environments) > 0) {
+		for _, environment := range *environments {
 			jsonValue, _ := json.Marshal(environment)
 			go basedatabase.InsertJson(client, "INSERT IGNORE INTO environments VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `json` = ?", repository.Id, environment.Id, string(jsonValue), string(jsonValue))
 		}
-
-		//ProcessDeployments(environments)
 	}
 }
 

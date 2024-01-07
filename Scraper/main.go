@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"gopkg.in/yaml.v2"
+	"log"
 	"os"
 	"strings"
+	"sync"
 	"thesis/scraper/internal"
 	"thesis/scraper/internal/basedatabase"
 	"thesis/scraper/internal/metricsdatabase"
@@ -22,10 +23,14 @@ func main() {
 	connectToBaseDatabase()
 	defer basedatabase.Close(baseDatabase)
 
+	group := sync.WaitGroup{}
+
 	for _, repository := range config.Repositories {
-		fmt.Printf("Processing Repo %s\n", repository.Id)
-		processing.HandleRepository(repository, findAdapter(repository, config.Adapters), baseDatabase, metricsDatabase)
+		log.Printf("Processing Repo %s\n", repository.Id)
+		processing.HandleRepository(repository, findAdapter(repository, config.Adapters), baseDatabase, metricsDatabase, &group)
 	}
+
+	group.Wait()
 }
 
 func findAdapter(repository internal.ConfigRepository, adapters []internal.Adapter) (adapter internal.Adapter) {

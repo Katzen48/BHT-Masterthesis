@@ -1,11 +1,9 @@
 package internal
 
 import (
-	"fmt"
-	"os"
+	"log"
 )
 
 func ProcessError(err error) {
-	fmt.Println(err)
-	os.Exit(2)
+	log.Fatal(err)
 }
