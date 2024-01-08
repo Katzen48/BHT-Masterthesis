@@ -11,6 +11,8 @@ type DatabaseClient struct {
 	session *gocql.Session
 }
 
+var chunkSize = 50
+
 func CreateClient(config internal.DatabaseConfig) *DatabaseClient {
 	cluster := gocql.NewCluster(config.Hosts...)
 	//cluster.Keyspace = config.Keyspace
@@ -84,21 +86,35 @@ func InsertBatch(client *DatabaseClient, statement string, values [][]any) {
 	Connect(client)
 
 	if client.session != nil {
-		batch := client.session.NewBatch(gocql.UnloggedBatch)
+		var chunks [][][]any
 
-		for _, args := range values {
-			batch.Entries = append(batch.Entries, gocql.BatchEntry{
-				Stmt:       statement,
-				Args:       args,
-				Idempotent: true,
-			})
+		for i := 0; i < len(values); i += chunkSize {
+			end := i + chunkSize
+
+			if end > len(values) {
+				end = len(values)
+			}
+
+			chunks = append(chunks, values[i:end])
 		}
 
-		if len(batch.Entries) > 0 {
-			err := client.session.ExecuteBatch(batch)
-			if err != nil {
-				internal.ProcessError(err)
-				return
+		for _, chunk := range chunks {
+			batch := client.session.NewBatch(gocql.UnloggedBatch)
+
+			for _, args := range chunk {
+				batch.Entries = append(batch.Entries, gocql.BatchEntry{
+					Stmt:       statement,
+					Args:       args,
+					Idempotent: true,
+				})
+			}
+
+			if len(batch.Entries) > 0 {
+				err := client.session.ExecuteBatch(batch)
+				if err != nil {
+					internal.ProcessError(err)
+					return
+				}
 			}
 		}
 	}
