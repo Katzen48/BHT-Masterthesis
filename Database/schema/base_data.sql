@@ -58,3 +58,33 @@ create table if not exists base_data.pull_requests
 );
 
 GRANT ALL PERMISSIONS ON base_data.pull_requests TO scraper;
+
+create table if not exists base_data.deployments
+(
+    adapter          TEXT,
+    repository_id    TEXT,
+    id               TEXT,
+    sha              TEXT,
+    commit_id        TEXT,
+    ref              TEXT,
+    task             TEXT,
+    environment_id   TEXT,
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    primary key ((adapter, repository_id), id)
+);
+
+GRANT ALL PERMISSIONS ON base_data.deployments TO scraper;
+
+create table if not exists base_data.environments
+(
+    adapter          TEXT,
+    repository_id    TEXT,
+    id               TEXT,
+    name             TEXT,
+    created_at       TIMESTAMP,
+    updated_at       TIMESTAMP,
+    primary key ((adapter, repository_id), id)
+);
+
+GRANT ALL PERMISSIONS ON base_data.environments TO scraper;
