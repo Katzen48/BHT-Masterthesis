@@ -82,6 +82,36 @@ func InsertPullRequests(adapter internal.Adapter, repository internal.Repository
 	InsertBatch(client, "INSERT INTO base_data.pull_requests (adapter, repository_id, id, head, base, issue_ids, commit_ids, closed_at, merged_at, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)", values)
 }
 
+func InsertDeployments(adapter internal.Adapter, repository internal.Repository, deployments []internal.Deployment, client *DatabaseClient) {
+	var values [][]any
+
+	for _, deployment := range deployments {
+		var commitId *string
+		var environmentId *string
+
+		if deployment.Commit != nil {
+			commitId = &deployment.Commit.Sha
+		}
+		if deployment.Environment != nil {
+			environmentId = &deployment.Environment.Id
+		}
+
+		values = append(values, []any{adapter.Name, repository.Id, deployment.Id, deployment.Sha, commitId, deployment.Ref, deployment.Task, environmentId, deployment.CreatedAt, deployment.UpdatedAt})
+	}
+
+	InsertBatch(client, "INSERT INTO base_data.deployments (adapter, repository_id, id, sha, commit_id, ref, task, environment_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)", values)
+}
+
+func InsertEnvironments(adapter internal.Adapter, repository internal.Repository, environments []internal.Environment, client *DatabaseClient) {
+	var values [][]any
+
+	for _, environment := range environments {
+		values = append(values, []any{adapter.Name, repository.Id, environment.Id, environment.Name, environment.CreatedAt, environment.UpdatedAt})
+	}
+
+	InsertBatch(client, "INSERT INTO base_data.environments (adapter, repository_id, id, name, created_at, updated_at) VALUES (?,?,?,?,?,?)", values)
+}
+
 func InsertBatch(client *DatabaseClient, statement string, values [][]any) {
 	Connect(client)
 

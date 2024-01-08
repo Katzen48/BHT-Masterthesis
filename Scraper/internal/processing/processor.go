@@ -1,7 +1,6 @@
 package processing
 
 import (
-	"github.com/rodaine/table"
 	"sync"
 	"thesis/scraper/internal"
 	"thesis/scraper/internal/metricsdatabase"
@@ -16,6 +15,8 @@ func Process(issues []internal.Issue, commits []internal.Commit, pullRequests []
 	metricsdatabase.InsertIssues(adapter, *repo, issues, metricsClient)
 	metricsdatabase.InsertCommits(adapter, *repo, commits, metricsClient)
 	metricsdatabase.InsertPullRequests(adapter, *repo, pullRequests, metricsClient)
+	metricsdatabase.InsertDeployments(adapter, *repo, deployments, metricsClient)
+	metricsdatabase.InsertEnvironments(adapter, *repo, environments, metricsClient)
 }
 
 func findRepo(issues []internal.Issue, commits []internal.Commit, pullRequests []internal.PullRequest) (repo *internal.Repository) {
@@ -56,13 +57,4 @@ func findRepo(issues []internal.Issue, commits []internal.Commit, pullRequests [
 	}
 
 	return
-}
-
-func printIssues(issues []internal.Issue) {
-	tbl := table.New("ID", "Created At", "Closed At", "Repo ID", "Repo Full Name", "Repo Default Branch", "Repo Created At", "Repo Updated At")
-	for _, issue := range issues {
-		tbl.AddRow(issue.ID, issue.CreatedAt, issue.ClosedAt, issue.Repo.Id, issue.Repo.FullName, issue.Repo.DefaultBranch, issue.Repo.CreatedAt, issue.Repo.UpdatedAt)
-	}
-
-	tbl.Print()
 }
