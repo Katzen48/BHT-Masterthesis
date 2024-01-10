@@ -134,7 +134,8 @@ export async function getRepositoryPullRequests(id: string): Promise<PullRequest
                 for (const commit of pullRequest.commits.nodes) {
                     commits.push({
                         sha: commit.commit.oid,
-                        repo
+                        repo,
+                        created_at: commit.commit.authoredDate ?? commit.commit.committedDate
                     })
                 }
             }
@@ -170,12 +171,14 @@ export async function getRepositoryCommits(id: string): Promise<Commit[]> {
     }
 
     const commitIds: Set<string> = new Set()
+    const commitObjects: any = {}
 
     if (response.refs?.nodes?.length > 0) {
         for (const ref of response.refs.nodes) {
             if (ref.target?.history?.nodes?.length > 0) {
                 for (const commit of ref.target.history.nodes) {
                     commitIds.add(commit.oid)
+                    commitObjects[commit.oid] = commit
                 }
             }
         }
@@ -183,9 +186,11 @@ export async function getRepositoryCommits(id: string): Promise<Commit[]> {
 
     const commits: Commit[] = []
     for (const sha of commitIds) {
+        const commitObject = commitObjects[sha]
         commits.push({
             sha,
-            repo
+            repo,
+            created_at: commitObject?.authoredDate ?? commitObject?.committedDate
         })
     }
 

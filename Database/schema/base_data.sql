@@ -31,6 +31,7 @@ create table if not exists base_data.commits
     adapter          TEXT,
     repository_id    TEXT,
     id               TEXT,
+    created_at       TIMESTAMP,
     primary key ((adapter, repository_id), id)
 );
 

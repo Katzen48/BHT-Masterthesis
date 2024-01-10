@@ -7,4 +7,5 @@ export interface Commits {
 export interface Commit {
     sha: string
     repo?: Repository
+    created_at?: Date
 }

@@ -462,6 +462,8 @@ export class Client {
                             nodes {
                                 commit {
                                     oid
+                                    authoredDate
+                                    committedDate
                                 }
                             }
                         }
@@ -634,6 +636,8 @@ export class Client {
                                 }
                                 nodes {
                                     oid
+                                    authoredDate
+                                    committedDate
                                 }
                             }
                           }

@@ -114,7 +114,8 @@ export async function getRepositoryPullRequests(id: string): Promise<PullRequest
 
         const commits: Commit[] = (await global.client.getPullRequestCommits(projectId, repositoryId, pullRequest.pullRequestId)).map(commit => {
             return {
-                sha: commit.commitId
+                sha: commit.commitId,
+                created_at: commit.author?.date ?? commit.committer?.date
             }
         })
 
@@ -158,7 +159,8 @@ export async function getRepositoryCommits(id: string): Promise<Commit[]> {
     const commits: Commit[] = (await global.client.getCommits(projectId, repositoryId)).map(commit => {
         return {
             sha: commit.commitId,
-            repo
+            repo,
+            created_at: commit.author?.date ?? commit.committer?.date
         }
     })
 
@@ -181,7 +183,8 @@ export async function getRepositoryPipelines(id: string): Promise<any[]> {
     const commits: Commit[] = (await global.client.getCommits(projectId, repositoryId)).map(commit => {
         return {
             sha: commit.commitId,
-            repo
+            repo,
+            created_at: commit.author?.date ?? commit.committer?.date
         }
     })
 

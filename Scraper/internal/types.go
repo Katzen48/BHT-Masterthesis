@@ -56,8 +56,9 @@ type Head struct {
 }
 
 type Commit struct {
-	Sha  string      `json:"sha"`
-	Repo *Repository `json:"repo"`
+	Sha       string      `json:"sha"`
+	Repo      *Repository `json:"repo"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 type PullRequest struct {

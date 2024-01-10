@@ -55,10 +55,10 @@ func InsertCommits(adapter internal.Adapter, repository internal.Repository, com
 	var values [][]any
 
 	for _, commit := range commits {
-		values = append(values, []any{adapter.Name, repository.Id, commit.Sha})
+		values = append(values, []any{adapter.Name, repository.Id, commit.Sha, commit.CreatedAt})
 	}
 
-	InsertBatch(client, "INSERT INTO base_data.commits (adapter, repository_id, id) VALUES (?,?,?)", values)
+	InsertBatch(client, "INSERT INTO base_data.commits (adapter, repository_id, id, created_at) VALUES (?,?,?, ?)", values)
 }
 
 func InsertPullRequests(adapter internal.Adapter, repository internal.Repository, pullRequests []internal.PullRequest, client *DatabaseClient) {
