@@ -3,6 +3,7 @@ package metricsdatabase
 import (
 	"github.com/gocql/gocql"
 	"thesis/scraper/internal"
+	"time"
 )
 
 type DatabaseClient struct {
@@ -58,7 +59,7 @@ func InsertCommits(adapter internal.Adapter, repository internal.Repository, com
 		values = append(values, []any{adapter.Name, repository.Id, commit.Sha, commit.CreatedAt})
 	}
 
-	InsertBatch(client, "INSERT INTO base_data.commits (adapter, repository_id, id, created_at) VALUES (?,?,?, ?)", values)
+	InsertBatch(client, "INSERT INTO base_data.commits (adapter, repository_id, id, created_at) VALUES (?,?,?,?)", values)
 }
 
 func InsertPullRequests(adapter internal.Adapter, repository internal.Repository, pullRequests []internal.PullRequest, client *DatabaseClient) {
@@ -110,6 +111,17 @@ func InsertEnvironments(adapter internal.Adapter, repository internal.Repository
 	}
 
 	InsertBatch(client, "INSERT INTO base_data.environments (adapter, repository_id, id, name, created_at, updated_at) VALUES (?,?,?,?,?,?)", values)
+}
+
+func InsertDeploymentFrequency(adapter internal.Adapter, repository internal.Repository, frequencies map[string]int, client *DatabaseClient) {
+	var values [][]any
+
+	for date, frequency := range frequencies {
+		timestamp, _ := time.Parse(time.DateOnly, date)
+		values = append(values, []any{adapter.Name, repository.Id, timestamp, frequency})
+	}
+
+	InsertBatch(client, "INSERT INTO metrics.deployment_frequencies (adapter, repository_id, date, frequency) VALUES (?,?,?,?)", values)
 }
 
 func InsertBatch(client *DatabaseClient, statement string, values [][]any) {
