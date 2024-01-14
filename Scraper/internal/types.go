@@ -46,7 +46,7 @@ type Repository struct {
 type WorkItem struct {
 	ID        string      `json:"id"`
 	CreatedAt time.Time   `json:"created_at"`
-	ClosedAt  time.Time   `json:"closed_at"`
+	ClosedAt  *time.Time  `json:"closed_at,omitempty"`
 	Repo      *Repository `json:"repo"`
 }
 
@@ -63,11 +63,11 @@ type Commit struct {
 
 type PullRequest struct {
 	WorkItem
-	Head     *Head     `json:"head"`
-	Base     *Head     `json:"base"`
-	MergedAt time.Time `json:"merged_at"`
-	Issues   []Issue   `json:"issues"`
-	Commits  []Commit  `json:"commits"`
+	Head     *Head      `json:"head"`
+	Base     *Head      `json:"base"`
+	MergedAt *time.Time `json:"merged_at,omitempty"`
+	Issues   []Issue    `json:"issues"`
+	Commits  []Commit   `json:"commits"`
 }
 
 type Issue struct {

@@ -80,6 +80,7 @@ export async function getRepositoryIssues(id: string): Promise<Issue[]> {
 
         return {
             id: String(issue.id),
+            type: 'Issue',
             pull_requests,
             created_at: issue.fields['System.CreatedDate'],
             closed_at: issue.fields['Microsoft.VSTS.Common.ClosedDate'],
@@ -101,7 +102,6 @@ export async function getRepositoryPullRequests(id: string): Promise<PullRequest
         updated_at: null 
     }
 
-    // TODO pagination
     const results: any[] = await global.client.getPullRequests(projectId, repositoryId)
     const pullRequests: PullRequest[] = []
     

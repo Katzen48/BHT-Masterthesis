@@ -1,4 +1,3 @@
-import { PullRequest } from "./pullRequest"
 import { WorkItem } from "./workItem"
 
 export interface Issues {
@@ -7,4 +6,5 @@ export interface Issues {
 
 export interface Issue extends WorkItem {
     pull_requests?: string[]
+    type?: string
 }
