@@ -78,15 +78,34 @@ export async function getRepositoryIssues(id: string): Promise<Issue[]> {
             return String(pullRequest.attributes.id)
         })
 
+        const type = (() => {
+            switch(issue.fields['System.WorkItemType']) {
+                case 'User Story':
+                    return 'Issue'
+                case 'Task':
+                    return 'Issue'
+                case 'Bug':
+                    return 'Bug'
+                case 'Feature':
+                    return null
+                case 'Epic':
+                    return null
+                case 'Issue':
+                    return 'Bug'
+                default:
+                    return 'Issue'
+            }
+        })()
+
         return {
             id: String(issue.id),
-            type: 'Issue',
+            type,
             pull_requests,
             created_at: issue.fields['System.CreatedDate'],
             closed_at: issue.fields['Microsoft.VSTS.Common.ClosedDate'],
             repo
         }
-    })
+    }).filter(issue => issue.type !== null)
 }
 
 export async function getRepositoryPullRequests(id: string): Promise<PullRequest[]> {

@@ -50,8 +50,10 @@ func calculateLeadTimeForChange(issues []internal.Issue) (leadTimes map[string]t
 	leadTimes = make(map[string]time.Duration)
 
 	for _, issue := range issues {
-		if issue.ClosedAt != nil {
-			leadTimes[issue.ID] = issue.ClosedAt.Sub(issue.CreatedAt)
+		if issue.Type == nil || *issue.Type == "Issue" {
+			if issue.ClosedAt != nil {
+				leadTimes[issue.ID] = issue.ClosedAt.Sub(issue.CreatedAt)
+			}
 		}
 	}
 

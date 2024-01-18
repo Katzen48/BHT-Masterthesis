@@ -46,10 +46,10 @@ func InsertIssues(adapter internal.Adapter, repository internal.Repository, issu
 	var values [][]any
 
 	for _, issue := range issues {
-		values = append(values, []any{adapter.Name, repository.Id, issue.ID, issue.PullRequests, issue.CreatedAt, issue.ClosedAt})
+		values = append(values, []any{adapter.Name, repository.Id, issue.ID, issue.Type, issue.PullRequests, issue.CreatedAt, issue.ClosedAt})
 	}
 
-	InsertBatch(client, "INSERT INTO base_data.issues (adapter, repository_id, id, pull_request_ids, created_at, closed_at) VALUES (?,?,?,?,?,?)", values)
+	InsertBatch(client, "INSERT INTO base_data.issues (adapter, repository_id, id, type, pull_request_ids, created_at, closed_at) VALUES (?,?,?,?,?,?,?)", values)
 }
 
 func InsertCommits(adapter internal.Adapter, repository internal.Repository, commits []internal.Commit, client *DatabaseClient) {

@@ -73,6 +73,7 @@ type PullRequest struct {
 type Issue struct {
 	WorkItem
 	PullRequests []string `json:"pull_requests"`
+	Type         *string  `json:"type,omitempty"`
 }
 
 type Environment struct {
