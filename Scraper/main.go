@@ -29,8 +29,11 @@ func main() {
 		log.Printf("Processing Repo %s\n", repository.Id)
 		processing.HandleRepository(repository, findAdapter(repository, config.Adapters), baseDatabase, metricsDatabase, &group)
 	}
-
 	group.Wait()
+
+	for _, adapter := range config.Adapters {
+		processing.Aggregate(adapter, metricsDatabase)
+	}
 }
 
 func findAdapter(repository internal.ConfigRepository, adapters []internal.Adapter) (adapter internal.Adapter) {

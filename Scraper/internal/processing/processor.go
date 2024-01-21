@@ -17,8 +17,6 @@ func Process(issues []internal.Issue, commits []internal.Commit, pullRequests []
 	metricsdatabase.InsertPullRequests(adapter, *repo, pullRequests, metricsClient)
 	metricsdatabase.InsertDeployments(adapter, *repo, deployments, metricsClient)
 	metricsdatabase.InsertEnvironments(adapter, *repo, environments, metricsClient)
-
-	Aggregate(*repo, issues, commits, pullRequests, deployments, environments, adapter, metricsClient)
 }
 
 func findRepo(issues []internal.Issue, commits []internal.Commit, pullRequests []internal.PullRequest) (repo *internal.Repository) {

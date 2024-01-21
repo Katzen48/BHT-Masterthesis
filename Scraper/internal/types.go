@@ -36,11 +36,11 @@ type Config struct {
 
 // HTTP Response Types
 type Repository struct {
-	Id            string    `json:"id"`
-	FullName      string    `json:"full_name"`
-	DefaultBranch string    `json:"default_branch"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	Id            string    `json:"id" cql:"id"`
+	FullName      string    `json:"full_name" cql:"full_name"`
+	DefaultBranch string    `json:"default_branch" cql:"default_branch"`
+	CreatedAt     time.Time `json:"created_at" cql:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" cql:"updated_at"`
 }
 
 type WorkItem struct {

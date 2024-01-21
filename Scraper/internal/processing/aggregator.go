@@ -8,7 +8,32 @@ import (
 
 type void struct{}
 
-func Aggregate(repo internal.Repository, issues []internal.Issue, commits []internal.Commit, pullRequests []internal.PullRequest, deployments []internal.Deployment, environments []internal.Environment, adapter internal.Adapter, metricsClient *metricsdatabase.DatabaseClient) {
+func Aggregate(adapter internal.Adapter, metricsClient *metricsdatabase.DatabaseClient) {
+	for _, repo := range loadRepos(adapter, metricsClient) {
+		var issues []internal.Issue
+		var commits []internal.Commit
+		var pullRequests []internal.PullRequest
+		var deployments []internal.Deployment
+		var environments []internal.Environment
+
+		loadData(adapter, repo, metricsClient, &issues, &commits, &pullRequests, &deployments, &environments)
+		aggregate(repo, issues, commits, pullRequests, deployments, environments, adapter, metricsClient)
+	}
+}
+
+func loadRepos(adapter internal.Adapter, metricsClient *metricsdatabase.DatabaseClient) (repos []internal.Repository) {
+	return metricsdatabase.ListRepositories(adapter, metricsClient)
+}
+
+func loadData(adapter internal.Adapter, repo internal.Repository, metricsClient *metricsdatabase.DatabaseClient, issues *[]internal.Issue, commits *[]internal.Commit, pullRequests *[]internal.PullRequest, deployments *[]internal.Deployment, environments *[]internal.Environment) {
+	*issues = append(*issues, metricsdatabase.ListIssues(adapter, metricsClient, repo)...)
+	*commits = append(*commits, metricsdatabase.ListCommits(adapter, metricsClient, repo)...)
+	*pullRequests = append(*pullRequests, metricsdatabase.ListPullRequests(adapter, metricsClient, repo)...)
+	*deployments = append(*deployments, metricsdatabase.ListDeployments(adapter, metricsClient, repo)...)
+	*environments = append(*environments, metricsdatabase.ListEnvironments(adapter, metricsClient, repo)...)
+}
+
+func aggregate(repo internal.Repository, issues []internal.Issue, commits []internal.Commit, pullRequests []internal.PullRequest, deployments []internal.Deployment, environments []internal.Environment, adapter internal.Adapter, metricsClient *metricsdatabase.DatabaseClient) {
 	deploymentFrequency := calculateDeploymentFrequency(deployments)
 	metricsdatabase.InsertDeploymentFrequency(adapter, repo, deploymentFrequency, metricsClient)
 

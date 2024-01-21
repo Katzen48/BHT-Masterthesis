@@ -21,6 +21,7 @@ func CreateClient(config internal.DatabaseConfig) *DatabaseClient {
 		Username: config.Username,
 		Password: config.Password,
 	}
+	cluster.ProtoVersion = 3
 
 	return &DatabaseClient{config: config, cluster: cluster}
 }
@@ -169,6 +170,203 @@ func InsertLeadTimeForChange(adapter internal.Adapter, repository internal.Repos
 	}
 
 	InsertBatch(client, "INSERT INTO metrics.lead_times (adapter, repository_id, repository_name, issue_id, lead_time) VALUES (?,?,?,?,?)", values)
+}
+
+func ListRepositories(adapter internal.Adapter, client *DatabaseClient) (repos []internal.Repository) {
+	var values []any
+	values = append(values, adapter.Name)
+
+	results := List(client, "SELECT id, full_name, default_branch, created_at, updated_at FROM base_data.repositories WHERE adapter = ? ALLOW FILTERING", values)
+	for _, result := range results {
+		repos = append(repos, internal.Repository{
+			Id:            result["id"].(string),
+			FullName:      result["full_name"].(string),
+			DefaultBranch: result["default_branch"].(string),
+			CreatedAt:     result["created_at"].(time.Time),
+			UpdatedAt:     result["updated_at"].(time.Time),
+		})
+	}
+
+	return
+}
+
+func ListIssues(adapter internal.Adapter, client *DatabaseClient, repo internal.Repository) (issues []internal.Issue) {
+	var values []any
+	values = append(values, adapter.Name)
+	values = append(values, repo.Id)
+
+	results := List(client, "SELECT id, pull_request_ids, created_at, closed_at, type FROM base_data.issues WHERE adapter = ? AND repository_id = ?", values)
+	for _, result := range results {
+		closedAt := result["closed_at"].(time.Time)
+		issueType := result["type"].(string)
+
+		issues = append(issues, internal.Issue{
+			WorkItem: internal.WorkItem{
+				ID:        result["id"].(string),
+				CreatedAt: result["created_at"].(time.Time),
+				ClosedAt:  &closedAt,
+				Repo:      &repo,
+			},
+			PullRequests: result["pull_request_ids"].([]string),
+			Type:         &issueType,
+		})
+	}
+
+	return
+}
+
+func ListCommits(adapter internal.Adapter, client *DatabaseClient, repo internal.Repository) (commits []internal.Commit) {
+	var values []any
+	values = append(values, adapter.Name)
+	values = append(values, repo.Id)
+
+	results := List(client, "SELECT id, created_at FROM base_data.commits WHERE adapter = ? AND repository_id = ?", values)
+	for _, result := range results {
+		commits = append(commits, internal.Commit{
+			Sha:       result["id"].(string),
+			Repo:      &repo,
+			CreatedAt: result["created_at"].(time.Time),
+		})
+	}
+
+	return
+}
+
+func ListPullRequests(adapter internal.Adapter, client *DatabaseClient, repo internal.Repository) (pullRequests []internal.PullRequest) {
+	var values []any
+	values = append(values, adapter.Name)
+	values = append(values, repo.Id)
+
+	results := List(client, "SELECT id, base, head, issue_ids, merged_at, closed_at, created_at, commit_ids FROM base_data.pull_requests WHERE adapter = ? AND repository_id = ?", values)
+	for _, result := range results {
+		closedAt := result["closed_at"].(time.Time)
+		mergedAt := result["merged_at"].(time.Time)
+
+		var head internal.Head
+		var base internal.Head
+
+		if result["head"] != nil {
+			headMap := result["head"].(map[string]interface{})
+			head = internal.Head{
+				Ref: headMap["ref"].(string),
+				Sha: headMap["id"].(string),
+			}
+		}
+		if result["base"] != nil {
+			headMap := result["base"].(map[string]interface{})
+			base = internal.Head{
+				Ref: headMap["ref"].(string),
+				Sha: headMap["id"].(string),
+			}
+		}
+
+		var issues []internal.Issue
+		var commits []internal.Commit
+
+		for _, issueId := range result["issue_ids"].([]string) {
+			issues = append(issues, internal.Issue{
+				WorkItem: internal.WorkItem{
+					ID:        issueId,
+					CreatedAt: time.Time{},
+					ClosedAt:  nil,
+					Repo:      &repo,
+				},
+				PullRequests: nil,
+				Type:         nil,
+			})
+		}
+		for _, commitId := range result["commit_ids"].([]string) {
+			commits = append(commits, internal.Commit{
+				Sha:       commitId,
+				Repo:      &repo,
+				CreatedAt: time.Time{},
+			})
+		}
+
+		pullRequests = append(pullRequests, internal.PullRequest{
+			WorkItem: internal.WorkItem{
+				ID:        result["id"].(string),
+				CreatedAt: result["created_at"].(time.Time),
+				ClosedAt:  &closedAt,
+				Repo:      &repo,
+			},
+			Head:     &head,
+			Base:     &base,
+			MergedAt: &mergedAt,
+			Issues:   issues,
+			Commits:  commits,
+		})
+	}
+
+	return
+}
+
+func ListDeployments(adapter internal.Adapter, client *DatabaseClient, repo internal.Repository) (deployments []internal.Deployment) {
+	var values []any
+	values = append(values, adapter.Name)
+	values = append(values, repo.Id)
+
+	results := List(client, "SELECT id, ref, task, environment_id, commit_id, sha, created_at, updated_at FROM base_data.commits WHERE adapter = ? AND repository_id = ?", values)
+	for _, result := range results {
+		deployments = append(deployments, internal.Deployment{
+			Id:  result["id"].(string),
+			Sha: result["sha"].(string),
+			Commit: &internal.Commit{
+				Sha:       result["commit_id"].(string),
+				Repo:      &repo,
+				CreatedAt: time.Time{},
+			},
+			Ref:  result["ref"].(string),
+			Task: result["task"].(string),
+			Environment: &internal.Environment{
+				Id:        result["environment_id"].(string),
+				Name:      result["environment_id"].(string),
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+			},
+			CreatedAt: result["created_at"].(time.Time),
+			UpdatedAt: result["updated_at"].(time.Time),
+		})
+	}
+
+	return
+}
+
+func ListEnvironments(adapter internal.Adapter, client *DatabaseClient, repo internal.Repository) (environments []internal.Environment) {
+	var values []any
+	values = append(values, adapter.Name)
+	values = append(values, repo.Id)
+
+	results := List(client, "SELECT id, name, created_at, updated_at FROM base_data.commits WHERE adapter = ? AND repository_id = ?", values)
+	for _, result := range results {
+		environments = append(environments, internal.Environment{
+			Id:        result["id"].(string),
+			Name:      result["name"].(string),
+			CreatedAt: result["created_at"].(time.Time),
+			UpdatedAt: result["updated_at"].(time.Time),
+		})
+	}
+
+	return
+}
+
+func List(client *DatabaseClient, statement string, values []any) (results []map[string]interface{}) {
+	Connect(client)
+
+	if client.session != nil {
+		query := client.session.Query(statement, values...)
+		iter := query.Iter()
+		for {
+			result := make(map[string]interface{})
+			if !iter.MapScan(result) {
+				break
+			}
+
+			results = append(results, result)
+		}
+	}
+
+	return results
 }
 
 func InsertBatch(client *DatabaseClient, statement string, values [][]any) {
