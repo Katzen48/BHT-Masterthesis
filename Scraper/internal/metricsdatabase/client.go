@@ -39,31 +39,51 @@ func Connect(client *DatabaseClient) {
 }
 
 func InsertRepository(adapter internal.Adapter, repository internal.Repository, client *DatabaseClient) {
-	Insert(client, "INSERT INTO base_data.repositories (adapter, id, full_name, default_branch, created_at, updated_at) VALUES (?,?,?,?,?,?)", adapter.Name, repository.Id, repository.FullName, repository.DefaultBranch, repository.CreatedAt, repository.UpdatedAt)
+	insertValues := [2]any{adapter.Name, repository.Id}
+	updateValues := [6]any{repository.FullName, repository.DefaultBranch, repository.CreatedAt, repository.UpdatedAt, adapter.Name, repository.Id}
+
+	Upsert(client,
+		"INSERT INTO base_data.repositories (adapter, id) VALUES (?,?)",
+		insertValues[:],
+		"UPDATE base_data.repositories SET full_name = ?, default_branch = ?, created_at = ?, updated_at = ?, manually_corrected = false WHERE adapter = ? AND id = ? IF manually_corrected != true",
+		updateValues[:])
 }
 
 func InsertIssues(adapter internal.Adapter, repository internal.Repository, issues []internal.Issue, client *DatabaseClient) {
-	var values [][]any
+	var insertValues [][]any
+	var updateValues [][]any
 
 	for _, issue := range issues {
-		values = append(values, []any{adapter.Name, repository.Id, issue.ID, issue.Type, issue.PullRequests, issue.CreatedAt, issue.ClosedAt})
+		insertValues = append(insertValues, []any{adapter.Name, repository.Id, issue.ID})
+		updateValues = append(updateValues, []any{issue.Type, issue.PullRequests, issue.CreatedAt, issue.ClosedAt, adapter.Name, repository.Id, issue.ID})
 	}
 
-	InsertBatch(client, "INSERT INTO base_data.issues (adapter, repository_id, id, type, pull_request_ids, created_at, closed_at) VALUES (?,?,?,?,?,?,?)", values)
+	UpsertBatch(client,
+		"INSERT INTO base_data.issues (adapter, repository_id, id) VALUES (?,?,?)",
+		insertValues,
+		"UPDATE base_data.issues SET type = ?, pull_request_ids = ?, created_at = ?, closed_at = ?, manually_corrected = false WHERE adapter = ? AND repository_id = ? AND id = ? IF manually_corrected != true",
+		updateValues)
 }
 
 func InsertCommits(adapter internal.Adapter, repository internal.Repository, commits []internal.Commit, client *DatabaseClient) {
-	var values [][]any
+	var insertValues [][]any
+	var updateValues [][]any
 
 	for _, commit := range commits {
-		values = append(values, []any{adapter.Name, repository.Id, commit.Sha, commit.CreatedAt})
+		insertValues = append(insertValues, []any{adapter.Name, repository.Id, commit.Sha})
+		updateValues = append(updateValues, []any{commit.CreatedAt, adapter.Name, repository.Id, commit.Sha})
 	}
 
-	InsertBatch(client, "INSERT INTO base_data.commits (adapter, repository_id, id, created_at) VALUES (?,?,?,?)", values)
+	UpsertBatch(client,
+		"INSERT INTO base_data.commits (adapter, repository_id, id) VALUES (?,?,?)",
+		insertValues,
+		"UPDATE base_data.commits SET created_at = ?, manually_corrected = false WHERE adapter = ? AND repository_id = ? AND id = ? IF manually_corrected != true",
+		updateValues)
 }
 
 func InsertPullRequests(adapter internal.Adapter, repository internal.Repository, pullRequests []internal.PullRequest, client *DatabaseClient) {
-	var values [][]any
+	var insertValues [][]any
+	var updateValues [][]any
 
 	for _, pullRequest := range pullRequests {
 		var issueIds []string
@@ -77,14 +97,20 @@ func InsertPullRequests(adapter internal.Adapter, repository internal.Repository
 			commitIds = append(commitIds, commit.Sha)
 		}
 
-		values = append(values, []any{adapter.Name, repository.Id, pullRequest.ID, pullRequest.Head, pullRequest.Base, issueIds, commitIds, pullRequest.ClosedAt, pullRequest.MergedAt, pullRequest.CreatedAt})
+		insertValues = append(insertValues, []any{adapter.Name, repository.Id, pullRequest.ID})
+		updateValues = append(updateValues, []any{pullRequest.Head, pullRequest.Base, issueIds, commitIds, pullRequest.ClosedAt, pullRequest.MergedAt, pullRequest.CreatedAt, adapter.Name, repository.Id, pullRequest.ID})
 	}
 
-	InsertBatch(client, "INSERT INTO base_data.pull_requests (adapter, repository_id, id, head, base, issue_ids, commit_ids, closed_at, merged_at, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)", values)
+	UpsertBatch(client,
+		"INSERT INTO base_data.pull_requests (adapter, repository_id, id) VALUES (?,?,?)",
+		insertValues,
+		"UPDATE base_data.pull_requests SET head = ?, base = ?, issue_ids = ?, commit_ids = ?, closed_at = ?, merged_at = ?, created_at = ?, manually_corrected = false WHERE adapter = ? AND repository_id = ? AND id = ? IF manually_corrected != true",
+		updateValues)
 }
 
 func InsertDeployments(adapter internal.Adapter, repository internal.Repository, deployments []internal.Deployment, client *DatabaseClient) {
-	var values [][]any
+	var insertValues [][]any
+	var updateValues [][]any
 
 	for _, deployment := range deployments {
 		var commitId *string
@@ -97,20 +123,31 @@ func InsertDeployments(adapter internal.Adapter, repository internal.Repository,
 			environmentId = &deployment.Environment.Id
 		}
 
-		values = append(values, []any{adapter.Name, repository.Id, deployment.Id, deployment.Sha, commitId, deployment.Ref, deployment.Task, environmentId, deployment.CreatedAt, deployment.UpdatedAt})
+		insertValues = append(insertValues, []any{adapter.Name, repository.Id, deployment.Id})
+		updateValues = append(updateValues, []any{deployment.Sha, commitId, deployment.Ref, deployment.Task, environmentId, deployment.CreatedAt, deployment.UpdatedAt, adapter.Name, repository.Id, deployment.Id})
 	}
 
-	InsertBatch(client, "INSERT INTO base_data.deployments (adapter, repository_id, id, sha, commit_id, ref, task, environment_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)", values)
+	UpsertBatch(client,
+		"INSERT INTO base_data.deployments (adapter, repository_id, id) VALUES (?,?,?)",
+		insertValues,
+		"UPDATE base_data.deployments SET sha = ?, commit_id = ?, ref = ?, task = ?, environment_id = ?, created_at = ?, updated_at = ?, manually_corrected = false WHERE adapter = ? AND repository_id = ? AND id = ? IF manually_corrected != true",
+		updateValues)
 }
 
 func InsertEnvironments(adapter internal.Adapter, repository internal.Repository, environments []internal.Environment, client *DatabaseClient) {
-	var values [][]any
+	var insertValues [][]any
+	var updateValues [][]any
 
 	for _, environment := range environments {
-		values = append(values, []any{adapter.Name, repository.Id, environment.Id, environment.Name, environment.CreatedAt, environment.UpdatedAt})
+		insertValues = append(insertValues, []any{adapter.Name, repository.Id, environment.Id})
+		updateValues = append(updateValues, []any{environment.Name, environment.CreatedAt, environment.UpdatedAt, adapter.Name, repository.Id, environment.Id})
 	}
 
-	InsertBatch(client, "INSERT INTO base_data.environments (adapter, repository_id, id, name, created_at, updated_at) VALUES (?,?,?,?,?,?)", values)
+	UpsertBatch(client,
+		"INSERT INTO base_data.environments (adapter, repository_id, id) VALUES (?,?,?)",
+		insertValues,
+		"UPDATE base_data.environments SET name = ?, created_at = ?, updated_at = ?, manually_corrected = false WHERE adapter = ? AND repository_id = ? AND id = ? IF manually_corrected != true",
+		updateValues)
 }
 
 func InsertDeploymentFrequency(adapter internal.Adapter, repository internal.Repository, frequencies map[string]int, client *DatabaseClient) {
@@ -172,14 +209,86 @@ func InsertBatch(client *DatabaseClient, statement string, values [][]any) {
 	}
 }
 
-func Insert(client *DatabaseClient, statement string, values ...any) {
+func UpsertBatch(client *DatabaseClient, insertStatement string, insertValues [][]any, updateStatement string, updateValues [][]any) {
 	Connect(client)
 
 	if client.session != nil {
-		err := client.session.Query(statement, values...).Exec()
+		var insertChunks [][][]any
+		var updateChunks [][][]any
+
+		for i := 0; i < len(insertValues); i += chunkSize / 2 {
+			end := i + chunkSize/2
+
+			if end > len(insertValues) {
+				end = len(insertValues)
+			}
+
+			insertChunks = append(insertChunks, insertValues[i:end])
+		}
+
+		for i := 0; i < len(updateValues); i += chunkSize / 2 {
+			end := i + chunkSize/2
+
+			if end > len(updateValues) {
+				end = len(updateValues)
+			}
+
+			updateChunks = append(updateChunks, updateValues[i:end])
+		}
+
+		for index, _ := range insertChunks {
+			batch := client.session.NewBatch(gocql.UnloggedBatch)
+
+			insertChunk := insertChunks[index]
+			for _, args := range insertChunk {
+				batch.Entries = append(batch.Entries, gocql.BatchEntry{
+					Stmt:       insertStatement,
+					Args:       args,
+					Idempotent: true,
+				})
+			}
+
+			updateChunk := updateChunks[index]
+			for _, args := range updateChunk {
+				batch.Entries = append(batch.Entries, gocql.BatchEntry{
+					Stmt:       updateStatement,
+					Args:       args,
+					Idempotent: true,
+				})
+			}
+
+			if len(batch.Entries) > 0 {
+				err := client.session.ExecuteBatch(batch)
+				if err != nil {
+					internal.ProcessError(err)
+					return
+				}
+			}
+		}
+	}
+}
+
+func Upsert(client *DatabaseClient, insertStatement string, insertValues []any, updateStatement string, updateValues []any) {
+	Connect(client)
+
+	if client.session != nil {
+		batch := client.session.NewBatch(gocql.LoggedBatch)
+
+		batch.Entries = append(batch.Entries, gocql.BatchEntry{
+			Stmt:       insertStatement,
+			Args:       insertValues,
+			Idempotent: true,
+		})
+
+		batch.Entries = append(batch.Entries, gocql.BatchEntry{
+			Stmt:       updateStatement,
+			Args:       updateValues,
+			Idempotent: true,
+		})
+
+		err := client.session.ExecuteBatch(batch)
 		if err != nil {
 			internal.ProcessError(err)
-			return
 		}
 	}
 }
