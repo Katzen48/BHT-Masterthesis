@@ -166,7 +166,14 @@ func InsertLeadTimeForChange(adapter internal.Adapter, repository internal.Repos
 	var values [][]any
 
 	for issueId, leadTime := range leadTimes {
-		values = append(values, []any{adapter.Name, repository.Id, repository.FullName, issueId, leadTime, leadTime.Milliseconds()})
+		var milliseconds any
+		if leadTime.Milliseconds() < 0 {
+			milliseconds = nil
+		} else {
+			milliseconds = leadTime.Milliseconds()
+		}
+
+		values = append(values, []any{adapter.Name, repository.Id, repository.FullName, issueId, leadTime, milliseconds})
 	}
 
 	InsertBatch(client, "INSERT INTO metrics.lead_times (adapter, repository_id, repository_name, issue_id, lead_time, lead_time_milliseconds) VALUES (?,?,?,?,?,?)", values)
