@@ -12,11 +12,12 @@ GRANT ALL PERMISSIONS ON metrics.deployment_frequencies TO scraper;
 
 create table lead_times
 (
-    adapter         TEXT,
-    repository_id   TEXT,
-    repository_name TEXT,
-    issue_id        TEXT,
-    lead_time       DURATION,
+    adapter                 TEXT,
+    repository_id           TEXT,
+    repository_name         TEXT,
+    issue_id                TEXT,
+    lead_time               DURATION,
+    lead_time_milliseconds  BIGINT,
     primary key ((adapter, repository_id), issue_id)
 );
 
