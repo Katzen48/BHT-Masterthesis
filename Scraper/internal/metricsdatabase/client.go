@@ -41,12 +41,12 @@ func Connect(client *DatabaseClient) {
 
 func InsertRepository(adapter internal.Adapter, repository internal.Repository, client *DatabaseClient) {
 	insertValues := [2]any{adapter.Name, repository.Id}
-	updateValues := [6]any{repository.FullName, repository.DefaultBranch, repository.CreatedAt, repository.UpdatedAt, adapter.Name, repository.Id}
+	updateValues := [7]any{repository.FullName, repository.DefaultBranch, repository.GroupingKey, repository.CreatedAt, repository.UpdatedAt, adapter.Name, repository.Id}
 
 	Upsert(client,
 		"INSERT INTO base_data.repositories (adapter, id) VALUES (?,?)",
 		insertValues[:],
-		"UPDATE base_data.repositories SET full_name = ?, default_branch = ?, created_at = ?, updated_at = ?, manually_corrected = false WHERE adapter = ? AND id = ? IF manually_corrected != true",
+		"UPDATE base_data.repositories SET full_name = ?, default_branch = ?, grouping_key = ?, created_at = ?, updated_at = ?, manually_corrected = false WHERE adapter = ? AND id = ? IF manually_corrected != true",
 		updateValues[:])
 }
 
@@ -156,7 +156,7 @@ func InsertDeploymentFrequency(adapter internal.Adapter, repository internal.Rep
 
 	for date, frequency := range frequencies {
 		timestamp, _ := time.Parse(time.DateOnly, date)
-		values = append(values, []any{adapter.Name, repository.Id, repository.FullName, timestamp, frequency})
+		values = append(values, []any{adapter.Name, repository.GroupingKey, repository.FullName, timestamp, frequency})
 	}
 
 	InsertBatch(client, "INSERT INTO metrics.deployment_frequencies (adapter, repository_id, repository_name, date, frequency) VALUES (?,?,?,?,?)", values)
@@ -173,7 +173,7 @@ func InsertLeadTimeForChange(adapter internal.Adapter, repository internal.Repos
 			milliseconds = leadTime.Milliseconds()
 		}
 
-		values = append(values, []any{adapter.Name, repository.Id, repository.FullName, issueId, leadTime, milliseconds})
+		values = append(values, []any{adapter.Name, repository.GroupingKey, repository.FullName, issueId, leadTime, milliseconds})
 	}
 
 	InsertBatch(client, "INSERT INTO metrics.lead_times (adapter, repository_id, repository_name, issue_id, lead_time, lead_time_milliseconds) VALUES (?,?,?,?,?,?)", values)
@@ -183,7 +183,7 @@ func ListRepositories(adapter internal.Adapter, client *DatabaseClient) (repos [
 	var values []any
 	values = append(values, adapter.Name)
 
-	results := List(client, "SELECT id, full_name, default_branch, created_at, updated_at FROM base_data.repositories WHERE adapter = ? ALLOW FILTERING", values)
+	results := List(client, "SELECT id, full_name, default_branch, grouping_key, created_at, updated_at FROM base_data.repositories WHERE adapter = ? ALLOW FILTERING", values)
 	for _, result := range results {
 		repos = append(repos, internal.Repository{
 			Id:            result["id"].(string),
@@ -191,6 +191,7 @@ func ListRepositories(adapter internal.Adapter, client *DatabaseClient) (repos [
 			DefaultBranch: result["default_branch"].(string),
 			CreatedAt:     result["created_at"].(time.Time),
 			UpdatedAt:     result["updated_at"].(time.Time),
+			GroupingKey:   result["grouping_key"].(string),
 		})
 	}
 

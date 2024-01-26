@@ -10,7 +10,8 @@ export async function listRepositories(): Promise<Repository[]> {
             full_name: repository.name,
             default_branch: repository.defaultBranchRef?.name,
             created_at: repository.createdAt,
-            updated_at: repository.updatedAt
+            updated_at: repository.updatedAt,
+            grouping_key: repository.owner.login + '/' + repository.name
         }
     })
 
@@ -28,7 +29,8 @@ export async function getRepository(id: string): Promise<Repository> {
         full_name: repository.name,
         default_branch: repository.defaultBranchRef?.name,
         created_at: repository.createdAt,
-        updated_at: repository.updatedAt
+        updated_at: repository.updatedAt,
+        grouping_key: repository.owner.login + '/' + repository.name
     }
 }
 
@@ -42,7 +44,8 @@ export async function getRepositoryIssues(id: string): Promise<Issue[]> {
         full_name: response.name,
         default_branch: response.defaultBranchRef?.name,
         created_at: response.createdAt,
-        updated_at: response.updatedAt
+        updated_at: response.updatedAt,
+        grouping_key: response.owner.login + '/' + response.name
     }
 
     const issues: Issue[] = []
@@ -94,7 +97,8 @@ export async function getRepositoryPullRequests(id: string): Promise<PullRequest
         full_name: response.name,
         default_branch: response.defaultBranchRef?.name,
         created_at: response.createdAt,
-        updated_at: response.updatedAt
+        updated_at: response.updatedAt,
+        grouping_key: response.owner.login + '/' + response.name
     }
     const pullRequests: PullRequest[] = []
 
@@ -167,7 +171,8 @@ export async function getRepositoryCommits(id: string): Promise<Commit[]> {
         full_name: response.name,
         default_branch: response.defaultBranchRef?.name,
         created_at: response.createdAt,
-        updated_at: response.updatedAt
+        updated_at: response.updatedAt,
+        grouping_key: response.owner.login + '/' + response.name
     }
 
     const commitIds: Set<string> = new Set()
@@ -207,7 +212,8 @@ export async function getRepositoryDeployments(id: string): Promise<Deployment[]
         full_name: rawRepo.name,
         default_branch: rawRepo.defaultBranchRef?.name,
         created_at: rawRepo.createdAt,
-        updated_at: rawRepo.updatedAt
+        updated_at: rawRepo.updatedAt,
+        grouping_key: rawRepo.owner.login + '/' + rawRepo.name
     }
 
     const response = await global.client.listDeployments(ownerLogin, repositoryName)

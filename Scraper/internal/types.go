@@ -41,6 +41,7 @@ type Repository struct {
 	DefaultBranch string    `json:"default_branch" cql:"default_branch"`
 	CreatedAt     time.Time `json:"created_at" cql:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at" cql:"updated_at"`
+	GroupingKey   string    `json:"grouping_key"`
 }
 
 type WorkItem struct {

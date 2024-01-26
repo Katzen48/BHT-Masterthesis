@@ -10,20 +10,25 @@ export async function listRepositories(): Promise<Repository[]> {
     }
 
     let resultPromise = await Promise.all(repositoryPromises)
-    const repositoryResults = []
+    const repositoryResults: any[] = []
     resultPromise.forEach(result => {
         repositoryResults.push(...result)
     })
 
-    const repositories: Repository[] = repositoryResults.flatMap(repository => {
-        return {
+    const repositories: Repository[] = []
+
+    for (const repository of repositoryResults) {
+        const project = await global.client.getProject(repository.project.id)
+
+        repositories.push({
             id: encodeURIComponent(repository.project.id + '/' + repository.id),
             full_name: repository.name,
             default_branch: repository.defaultBranch,
             created_at: null,
-            updated_at: null
-        }
-    })
+            updated_at: null,
+            grouping_key: project.name
+        })
+    }
 
     return repositories
 }
@@ -32,6 +37,7 @@ export async function getRepository(id: string): Promise<Repository> {
     const normalizedId: string = decodeURIComponent(id)
     const [projectId, repositoryId] = normalizedId.split('/')
 
+    const project = await global.client.getProject(projectId)
     const repository = await global.client.getRepository(projectId, repositoryId)
 
     return {
@@ -39,7 +45,8 @@ export async function getRepository(id: string): Promise<Repository> {
         full_name: repository.name,
         default_branch: repository.defaultBranch,
         created_at: null,
-        updated_at: null
+        updated_at: null,
+        grouping_key: project.name
     }
 }
 
@@ -47,13 +54,16 @@ export async function getRepositoryIssues(id: string): Promise<Issue[]> {
     const normalizedId: string = decodeURIComponent(id)
     const [projectId, repositoryId] = normalizedId.split('/')
 
+    const project = await global.client.getProject(projectId)
+
     const rawRepo = await global.client.getRepository(projectId, repositoryId)
     const repo: Repository = {
         id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
         full_name: rawRepo.name,
         default_branch: rawRepo.defaultBranch,
         created_at: null,
-        updated_at: null 
+        updated_at: null,
+        grouping_key: project.name
     }
 
     const issuePromises = []
@@ -112,13 +122,16 @@ export async function getRepositoryPullRequests(id: string): Promise<PullRequest
     const normalizedId: string = decodeURIComponent(id)
     const [projectId, repositoryId] = normalizedId.split('/')
 
+    const project = await global.client.getProject(projectId)
+
     const rawRepo = await global.client.getRepository(projectId, repositoryId)
     const repo: Repository = {
         id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
         full_name: rawRepo.name,
         default_branch: rawRepo.defaultBranch,
         created_at: null,
-        updated_at: null 
+        updated_at: null,
+        grouping_key: project.name
     }
 
     const results: any[] = await global.client.getPullRequests(projectId, repositoryId)
@@ -166,13 +179,16 @@ export async function getRepositoryCommits(id: string): Promise<Commit[]> {
     const normalizedId: string = decodeURIComponent(id)
     const [projectId, repositoryId] = normalizedId.split('/')
 
+    const project = await global.client.getProject(projectId)
+
     const rawRepo = await global.client.getRepository(projectId, repositoryId)
     const repo: Repository = {
         id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
         full_name: rawRepo.name,
         default_branch: rawRepo.defaultBranch,
         created_at: null,
-        updated_at: null 
+        updated_at: null,
+        grouping_key: project.name
     }
 
     const commits: Commit[] = (await global.client.getCommits(projectId, repositoryId)).map(commit => {
@@ -190,13 +206,16 @@ export async function getRepositoryPipelines(id: string): Promise<any[]> {
     const normalizedId: string = decodeURIComponent(id)
     const [projectId, repositoryId] = normalizedId.split('/')
 
+    const project = await global.client.getProject(projectId)
+
     const rawRepo = await global.client.getRepository(projectId, repositoryId)
     const repo: Repository = {
         id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
         full_name: rawRepo.name,
         default_branch: rawRepo.defaultBranch,
         created_at: null,
-        updated_at: null 
+        updated_at: null,
+        grouping_key: project.name
     }
 
     const commits: Commit[] = (await global.client.getCommits(projectId, repositoryId)).map(commit => {
@@ -214,13 +233,16 @@ export async function getRepositoryDeployments(id: string)/*: Promise<Deployment
     const normalizedId: string = decodeURIComponent(id)
     const [projectId, repositoryId] = normalizedId.split('/')
 
+    const project = await global.client.getProject(projectId)
+
     const rawRepo = await global.client.getRepository(projectId, repositoryId)
     const repo: Repository = {
         id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
         full_name: rawRepo.name,
         default_branch: rawRepo.defaultBranch,
         created_at: null,
-        updated_at: null 
+        updated_at: null,
+        grouping_key: project.name
     }
 
     const pipelineIds = (await global.client.listPipelines(projectId)).flatMap(pipeline => pipeline.id)
