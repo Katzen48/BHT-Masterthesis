@@ -54,9 +54,9 @@ export async function getRepositoryIssues(id: string): Promise<Issue[]> {
     const normalizedId: string = decodeURIComponent(id)
     const [projectId, repositoryId] = normalizedId.split('/')
 
-    const project = await global.client.getProject(projectId)
+    const project: any = await global.client.getProject(projectId)
 
-    const rawRepo = await global.client.getRepository(projectId, repositoryId)
+    const rawRepo: any = await global.client.getRepository(projectId, repositoryId)
     const repo: Repository = {
         id: encodeURIComponent(rawRepo.project.id + '/' + rawRepo.id),
         full_name: rawRepo.name,
@@ -69,8 +69,8 @@ export async function getRepositoryIssues(id: string): Promise<Issue[]> {
     const issuePromises = []
     const teams = await global.client.listTeams(projectId)
     for (const team of teams) {
-        issuePromises.push(global.client.listWorkItems(projectId, team.id).then(async function(workItems: Array<any>) {
-            const issues = []
+        issuePromises.push(global.client.listWorkItems(projectId, team.id, project.name).then(async function(workItems: Array<any>) {
+            const issues: any[] = []
 
             await chunk(workItems, async function(batch: Array<any>) {
                 const ids = batch.flatMap((workItem) => workItem.id)

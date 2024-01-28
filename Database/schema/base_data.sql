@@ -8,6 +8,7 @@ create table if not exists repositories
     default_branch     TEXT,
     created_at         TIMESTAMP,
     updated_at         TIMESTAMP,
+    grouping_key       TEXT,
     manually_corrected BOOLEAN,
     primary key ((adapter, id))
 );

@@ -93,7 +93,7 @@ export class Client {
         })).json()
     }
 
-    async listWorkItems(projectId: string, teamId: string) {
+    async listWorkItems(projectId: string, teamId: string, projectName: string) {
         const queryTemplate = 'SELECT [System.Id] FROM workitems ORDER BY [System.Id]'
 
         const workItems: any[] = []
@@ -101,8 +101,9 @@ export class Client {
         let lastId = 0
         while (!empty) {
             const lowerLimit = lastId
-            const upperLimit = (lastId += 20000)
-            const query = `${queryTemplate} WHERE ID > ${lowerLimit} AND ID < ${upperLimit}`
+            lastId += 20000
+            const upperLimit = lastId
+            const query = `${queryTemplate} WHERE ID >= ${lowerLimit} AND ID < ${upperLimit} AND [System.TeamProject] = '${projectName}'`
 
             try {
                 const response: any = await (await this.executeRequest(this.orgUrl + projectId + '/' + teamId + '/_apis/wit/wiql/?api-version=7.2-preview.2', {
