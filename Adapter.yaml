@@ -1,0 +1,242 @@
+openapi: 3.0.3
+info:
+  title: Adapter API
+  description: Adapter API
+  version: 1.0.0
+tags:
+  - name: Direct
+paths:
+  /direct/repos/:
+    get:
+      tags:
+        - Direct
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  allOf:
+                    - $ref: '#/components/schemas/Repository'
+  /direct/repos/{repo_id}:
+    get:
+      tags:
+        - Direct
+      parameters:
+        - $ref: '#/components/parameters/Repo'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Repository'
+  /direct/repos/{repo_id}/issues:
+    get:
+      tags:
+        - Direct
+      parameters:
+        - $ref: '#/components/parameters/Repo'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+  /direct/repos/{repo_id}/pulls:
+    get:
+      tags:
+        - Direct
+      parameters:
+        - $ref: '#/components/parameters/Repo'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullRequest'
+  /direct/repos/{repo_id}/commits:
+    get:
+      tags:
+        - Direct
+      parameters:
+        - $ref: '#/components/parameters/Repo'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Commit'
+  /direct/repos/{repo_id}/deployments:
+    get:
+      tags:
+        - Direct
+      parameters:
+        - $ref: '#/components/parameters/Repo'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deployment'
+  /direct/repos/{repo_id}/environments:
+    get:
+      tags:
+        - Direct
+      parameters:
+        - $ref: '#/components/parameters/Repo'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Environment'
+
+components:
+  schemas:
+    WorkItem:
+      type: object
+      required:
+        - id
+        - created_at
+      properties:
+        id:
+          type: string
+        created_at:
+          type: string
+          format: 'date-time'
+        closed_at:
+          type: string
+          format: 'date-time'
+        repo:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Repository'
+    Issue:
+      allOf:
+        - $ref: '#/components/schemas/WorkItem'
+        - type: object
+          properties:
+            pull_request:
+              type: object
+              allOf:
+                - $ref: '#/components/schemas/PullRequest'
+    PullRequest:
+      allOf:
+        - $ref: '#/components/schemas/WorkItem'
+        - type: object
+          properties:
+            head:
+              type: object
+              properties:
+                ref:
+                  type: string
+                sha:
+                  type: string
+            base:
+              type: object
+              properties:
+                ref:
+                  type: string
+                sha:
+                  type: string
+            merged_at:
+              type: string
+              format: 'date-time'
+            issue:
+              type: object
+              allOf:
+                - $ref: '#/components/schemas/Issue'
+            commits:
+              type: array
+              items:
+                type: object
+                allOf:
+                  - $ref: '#/components/schemas/Commit'
+    Commit:
+      type: object
+      required:
+        - sha
+      properties:
+        sha:
+          type: string
+        repo:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Repository'
+    Deployment:
+      type: object
+      required:
+        - id
+        - sha
+        - ref
+        - task
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        sha:
+          type: string
+        commit:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Commit'
+        ref:
+          type: string
+        task:
+          type: string
+        environment:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Environment'
+        created_at:
+          type: string
+          format: 'date-time'
+        updated_at:
+          type: string
+          format: 'date-time'
+    Environment:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        created_at:
+          type: string
+          format: 'date-time'
+        updated_at:
+          type: string
+          format: 'date-time'
+    Repository:
+      type: object
+      properties:
+        id:
+          type: string
+        full_name:
+          description: '{owner}/{name} in case of GitHub'
+          type: string
+        default_branch:
+          type: string
+        created_at:
+          type: string
+          format: 'date-time'
+        updated_at:
+          type: string
+          format: 'date-time'
+  parameters:
+    Repo:
+      in: path
+      name: repo_id
+      required: true
+      schema:
+        type: string
