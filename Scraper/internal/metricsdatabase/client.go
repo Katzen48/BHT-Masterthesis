@@ -314,7 +314,7 @@ func ListDeployments(adapter internal.Adapter, client *DatabaseClient, repo inte
 	values = append(values, adapter.Name)
 	values = append(values, repo.Id)
 
-	results := List(client, "SELECT id, ref, task, environment_id, commit_id, sha, created_at, updated_at FROM base_data.commits WHERE adapter = ? AND repository_id = ?", values)
+	results := List(client, "SELECT id, ref, task, environment_id, commit_id, sha, created_at, updated_at FROM base_data.deployments WHERE adapter = ? AND repository_id = ?", values)
 	for _, result := range results {
 		deployments = append(deployments, internal.Deployment{
 			Id:  result["id"].(string),
