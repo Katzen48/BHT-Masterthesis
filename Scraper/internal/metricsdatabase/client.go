@@ -156,10 +156,10 @@ func InsertDeploymentFrequency(adapter internal.Adapter, repository internal.Rep
 
 	for date, frequency := range frequencies {
 		timestamp, _ := time.Parse(time.DateOnly, date)
-		values = append(values, []any{adapter.Name, repository.GroupingKey, repository.FullName, timestamp, frequency})
+		values = append(values, []any{adapter.Name, repository.GroupingKey, repository.Id, repository.FullName, timestamp, frequency})
 	}
 
-	InsertBatch(client, "INSERT INTO metrics.deployment_frequencies (adapter, repository_id, repository_name, date, frequency) VALUES (?,?,?,?,?)", values)
+	InsertBatch(client, "INSERT INTO metrics.deployment_frequencies (adapter, grouping_key, repository_id, repository_name, date, frequency) VALUES (?,?,?,?,?,?)", values)
 }
 
 func InsertLeadTimeForChange(adapter internal.Adapter, repository internal.Repository, leadTimes map[string]time.Duration, client *DatabaseClient) {
