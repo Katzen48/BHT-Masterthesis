@@ -113,7 +113,7 @@ func calculateChangeFailureRate(issues []internal.Issue) float64 {
 		return 0
 	}
 
-	return float64(failureCount / issueCount)
+	return float64(failureCount) / float64(issueCount)
 }
 
 func calculateTimesToRestoreService(issues []internal.Issue) (timesToRestoreService map[string]time.Duration) {
