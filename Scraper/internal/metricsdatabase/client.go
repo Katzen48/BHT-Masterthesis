@@ -193,6 +193,23 @@ func InsertChangeFailureRate(adapter internal.Adapter, repository internal.Repos
 		updateValues)
 }
 
+func InsertTimesToRestoreService(adapter internal.Adapter, repository internal.Repository, timesToRestoreService map[string]time.Duration, client *DatabaseClient) {
+	var values [][]any
+
+	for issueId, leadTime := range timesToRestoreService {
+		var milliseconds any
+		if leadTime.Milliseconds() < 0 {
+			milliseconds = nil
+		} else {
+			milliseconds = leadTime.Milliseconds()
+		}
+
+		values = append(values, []any{adapter.Name, repository.GroupingKey, repository.FullName, issueId, leadTime, milliseconds})
+	}
+
+	InsertBatch(client, "INSERT INTO metrics.times_to_restore_service (adapter, repository_id, repository_name, issue_id, time_to_restore_service, time_to_restore_service_milliseconds) VALUES (?,?,?,?,?,?)", values)
+}
+
 func ListRepositories(adapter internal.Adapter, client *DatabaseClient) (repos []internal.Repository) {
 	var values []any
 	values = append(values, adapter.Name)

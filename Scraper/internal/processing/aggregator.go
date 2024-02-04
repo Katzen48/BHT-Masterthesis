@@ -42,6 +42,9 @@ func aggregate(repo internal.Repository, issues []internal.Issue, commits []inte
 
 	changeFailureRate := calculateChangeFailureRate(issues)
 	metricsdatabase.InsertChangeFailureRate(adapter, repo, changeFailureRate, metricsClient)
+
+	timesToRestoreService := calculateTimesToRestoreService(issues)
+	metricsdatabase.InsertTimesToRestoreService(adapter, repo, timesToRestoreService, metricsClient)
 	/*
 		backtrackedCommits := backtrackCommits(pullRequests)
 		tbl := table.New("Ref", "Commit", "Timestamp")
@@ -79,9 +82,13 @@ func calculateLeadTimeForChange(issues []internal.Issue) (leadTimes map[string]t
 
 	for _, issue := range issues {
 		if issue.Type == nil || *issue.Type == "Issue" {
-			if issue.ClosedAt != nil {
-				leadTimes[issue.ID] = issue.ClosedAt.Sub(issue.CreatedAt)
+			var baseDate = time.Now()
+
+			if issue.ClosedAt != nil && !issue.ClosedAt.IsZero() {
+				baseDate = *issue.ClosedAt
 			}
+
+			leadTimes[issue.ID] = baseDate.Sub(issue.CreatedAt)
 		}
 	}
 
@@ -107,6 +114,24 @@ func calculateChangeFailureRate(issues []internal.Issue) float64 {
 	}
 
 	return float64(failureCount / issueCount)
+}
+
+func calculateTimesToRestoreService(issues []internal.Issue) (timesToRestoreService map[string]time.Duration) {
+	timesToRestoreService = make(map[string]time.Duration)
+
+	for _, issue := range issues {
+		if issue.Type != nil && *issue.Type == "Bug" {
+			var baseDate = time.Now()
+
+			if issue.ClosedAt != nil && !issue.ClosedAt.IsZero() {
+				baseDate = *issue.ClosedAt
+			}
+
+			timesToRestoreService[issue.ID] = baseDate.Sub(issue.CreatedAt)
+		}
+	}
+
+	return timesToRestoreService
 }
 
 func backtrackCommits(pullRequests []internal.PullRequest) (commits map[string]map[string]time.Time) {

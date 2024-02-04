@@ -38,3 +38,17 @@ create table if not exists metrics.change_failure_rates
 
 GRANT ALL PERMISSIONS ON metrics.change_failure_rates TO scraper;
 GRANT ALL PERMISSIONS ON metrics.change_failure_rates TO grafana;
+
+create table if not exists metrics.times_to_restore_service
+(
+    adapter                                 TEXT,
+    repository_id                           TEXT,
+    repository_name                         TEXT,
+    issue_id                                TEXT,
+    time_to_restore_service                 DURATION,
+    time_to_restore_service_milliseconds    BIGINT,
+    primary key ((adapter, repository_id), issue_id)
+);
+
+GRANT ALL PERMISSIONS ON metrics.times_to_restore_service TO scraper;
+GRANT ALL PERMISSIONS ON metrics.times_to_restore_service TO grafana;
