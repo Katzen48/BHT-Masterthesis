@@ -39,6 +39,9 @@ func aggregate(repo internal.Repository, issues []internal.Issue, commits []inte
 
 	leadTimes := calculateLeadTimeForChange(issues)
 	metricsdatabase.InsertLeadTimeForChange(adapter, repo, leadTimes, metricsClient)
+
+	changeFailureRate := calculateChangeFailureRate(issues)
+	metricsdatabase.InsertChangeFailureRate(adapter, repo, changeFailureRate, metricsClient)
 	/*
 		backtrackedCommits := backtrackCommits(pullRequests)
 		tbl := table.New("Ref", "Commit", "Timestamp")
@@ -83,6 +86,27 @@ func calculateLeadTimeForChange(issues []internal.Issue) (leadTimes map[string]t
 	}
 
 	return leadTimes
+}
+
+func calculateChangeFailureRate(issues []internal.Issue) float64 {
+	var issueCount int = 0
+	var failureCount int = 0
+
+	for _, issue := range issues {
+		if issue.Type != nil {
+			issueCount++
+
+			if *issue.Type == "Bug" {
+				failureCount++
+			}
+		}
+	}
+
+	if issueCount < 1 {
+		return 0
+	}
+
+	return float64(failureCount / issueCount)
 }
 
 func backtrackCommits(pullRequests []internal.PullRequest) (commits map[string]map[string]time.Time) {

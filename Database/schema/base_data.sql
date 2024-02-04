@@ -1,6 +1,6 @@
 create keyspace base_data with replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
 
-create table if not exists repositories
+create table if not exists base_data.repositories
 (
     adapter            TEXT,
     id                 TEXT,

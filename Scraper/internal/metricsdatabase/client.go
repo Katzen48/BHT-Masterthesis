@@ -179,6 +179,20 @@ func InsertLeadTimeForChange(adapter internal.Adapter, repository internal.Repos
 	InsertBatch(client, "INSERT INTO metrics.lead_times (adapter, repository_id, repository_name, issue_id, lead_time, lead_time_milliseconds) VALUES (?,?,?,?,?,?)", values)
 }
 
+func InsertChangeFailureRate(adapter internal.Adapter, repository internal.Repository, changeFailureRate float64, client *DatabaseClient) {
+	var insertValues []any
+	insertValues = append(insertValues, adapter.Name, repository.GroupingKey, repository.FullName, changeFailureRate)
+
+	var updateValues []any
+	updateValues = append(updateValues, changeFailureRate, adapter.Name, repository.GroupingKey)
+
+	Upsert(client,
+		"INSERT INTO metrics.change_failure_rates (adapter, repository_id, repository_name, rate) VALUES (?,?,?,?)",
+		insertValues,
+		"UPDATE metrics.change_failure_rates SET rate = ? WHERE adapter = ? AND repository_id = ?",
+		updateValues)
+}
+
 func ListRepositories(adapter internal.Adapter, client *DatabaseClient) (repos []internal.Repository) {
 	var values []any
 	values = append(values, adapter.Name)
