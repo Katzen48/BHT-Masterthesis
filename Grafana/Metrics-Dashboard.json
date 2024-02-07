@@ -57,21 +57,8 @@
   "graphTooltip": 0,
   "id": null,
   "links": [],
-  "liveNow": false,
+  "liveNow": true,
   "panels": [
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 2,
-      "panels": [],
-      "title": "Deployment Frequency",
-      "type": "row"
-    },
     {
       "datasource": {
         "type": "hadesarchitect-cassandra-datasource",
@@ -114,7 +101,7 @@
               "mode": "off"
             }
           },
-          "displayName": "${__field.labels.repository_name}",
+          "displayName": "${__field.labels.grouping_key}",
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -133,10 +120,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 10,
+        "h": 13,
         "w": 12,
         "x": 0,
-        "y": 1
+        "y": 0
       },
       "id": 1,
       "options": {
@@ -168,7 +155,7 @@
           "rawQuery": true,
           "refId": "A",
           "table": "deployment_frequencies",
-          "target": "SELECT adapter, repository_id, repository_name, date, frequency FROM metrics.deployment_frequencies"
+          "target": "SELECT adapter, grouping_key, date, frequency FROM metrics.deployment_frequencies WHERE date > $__timeFrom and date < $__timeTo ALLOW FILTERING"
         }
       ],
       "title": "Deployment Frequency over time",
@@ -184,7 +171,7 @@
           "id": "labelsToFields",
           "options": {
             "keepLabels": [
-              "repository_name"
+              "grouping_key"
             ],
             "mode": "columns"
           }
@@ -223,6 +210,7 @@
               "mode": "off"
             }
           },
+          "displayName": "Mean Deployment Frequency",
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -237,10 +225,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 10,
+        "h": 13,
         "w": 12,
         "x": 12,
-        "y": 1
+        "y": 0
       },
       "id": 3,
       "options": {
@@ -281,51 +269,17 @@
           "rawQuery": true,
           "refId": "A",
           "table": "deployment_frequencies",
-          "target": "SELECT adapter, repository_id, repository_name, date, frequency FROM metrics.deployment_frequencies"
+          "target": "SELECT grouping_key, adapter, date, AVG(frequency) FROM metrics.deployment_frequencies WHERE date > $__timeFrom and date < $__timeTo GROUP BY adapter, grouping_key ALLOW FILTERING"
         }
       ],
       "title": "Mean Deployment Frequency",
       "transformations": [
         {
-          "id": "prepareTimeSeries",
-          "options": {
-            "format": "multi"
-          }
-        },
-        {
-          "id": "reduce",
-          "options": {
-            "includeTimeField": false,
-            "labelsToFields": true,
-            "mode": "seriesToRows",
-            "reducers": [
-              "mean"
-            ]
-          }
-        },
-        {
-          "id": "groupingToMatrix",
-          "options": {
-            "columnField": "repository_name",
-            "rowField": "adapter",
-            "valueField": "Mean"
-          }
+          "id": "merge",
+          "options": {}
         }
       ],
       "type": "barchart"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 11
-      },
-      "id": 4,
-      "panels": [],
-      "title": "Lead Times",
-      "type": "row"
     },
     {
       "datasource": {
@@ -358,6 +312,7 @@
               "mode": "off"
             }
           },
+          "displayName": "Mean Lead Time",
           "fieldMinMax": false,
           "mappings": [],
           "thresholds": {
@@ -374,10 +329,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 10,
+        "h": 9,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 13
       },
       "id": 5,
       "options": {
@@ -406,7 +361,6 @@
         {
           "alias": "",
           "columnId": "repository_id",
-          "columnTime": "date",
           "columnValue": "frequency",
           "datasource": {
             "type": "hadesarchitect-cassandra-datasource",
@@ -420,7 +374,7 @@
           "rawQuery": true,
           "refId": "A",
           "table": "deployment_frequencies",
-          "target": "SELECT adapter, repository_id, repository_name, AVG(lead_time_milliseconds) FROM metrics.lead_times WHERE lead_time_milliseconds > 0 GROUP BY adapter, repository_id ALLOW FILTERING"
+          "target": "SELECT repository_id, adapter, AVG(lead_time_milliseconds) FROM metrics.lead_times WHERE lead_time_milliseconds > 0 GROUP BY adapter, repository_id ALLOW FILTERING"
         }
       ],
       "title": "Mean Lead Time",
@@ -428,39 +382,207 @@
         {
           "id": "merge",
           "options": {}
-        },
-        {
-          "id": "groupBy",
-          "options": {
-            "fields": {
-              "adapter": {
-                "aggregations": [],
-                "operation": "groupby"
-              },
-              "issue_id": {
-                "aggregations": []
-              },
-              "lead_time_milliseconds": {
-                "aggregations": [
-                  "mean"
-                ],
-                "operation": "aggregate"
-              },
-              "repository_id": {
-                "aggregations": [],
-                "operation": "groupby"
-              },
-              "repository_name": {
-                "aggregations": []
-              },
-              "system.avg(lead_time_milliseconds)": {
-                "aggregations": [
-                  "mean"
-                ],
-                "operation": "aggregate"
-              }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "hadesarchitect-cassandra-datasource",
+        "uid": "${DS_METRICS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
             }
-          }
+          },
+          "displayName": "Mean Change Failure Rate",
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 18,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "id": 7,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "${DS_METRICS}"
+          },
+          "datasourceId": 1,
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "target": "SELECT repository_id, adapter, AVG(rate) FROM metrics.change_failure_rates GROUP BY adapter, repository_id ALLOW FILTERING"
+        }
+      ],
+      "title": "Mean Change Failure Rate",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "hadesarchitect-cassandra-datasource",
+        "uid": "${DS_METRICS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "Mean Time To Restore Service",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 9,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "${DS_METRICS}"
+          },
+          "datasourceId": 1,
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "target": "SELECT repository_id, adapter, AVG(time_to_restore_service_milliseconds) FROM metrics.times_to_restore_service GROUP BY adapter, repository_id ALLOW FILTERING"
+        }
+      ],
+      "title": "Mean Times To Restore Service",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
         }
       ],
       "type": "barchart"
@@ -473,13 +595,15 @@
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-90d",
     "to": "now"
   },
-  "timepicker": {},
+  "timepicker": {
+    "hidden": false
+  },
   "timezone": "",
   "title": "Metrics",
   "uid": "ed489061-c63c-4d53-84b7-d94d58e3cf8c",
-  "version": 13,
+  "version": 33,
   "weekStart": ""
 }
