@@ -62,20 +62,20 @@ func aggregate(repo internal.Repository, issues []internal.Issue, commits []inte
 func calculateDeploymentFrequency(deployments []internal.Deployment) (deploymentCounts map[string]int) {
 	deploymentCounts = make(map[string]int)
 
-	var minDate *time.Time
-	var maxDate *time.Time
+	var minDate time.Time
+	var maxDate time.Time
 
 	for _, deployment := range deployments {
-		if minDate == nil || minDate.After(deployment.CreatedAt) {
-			minDate = &deployment.CreatedAt
+		if minDate.IsZero() || minDate.After(deployment.CreatedAt) {
+			minDate = deployment.CreatedAt
 		}
 
-		if maxDate == nil || maxDate.Before(deployment.CreatedAt) {
-			maxDate = &deployment.CreatedAt
+		if maxDate.IsZero() || maxDate.Before(deployment.CreatedAt) {
+			maxDate = deployment.CreatedAt
 		}
 	}
 
-	if maxDate == nil || minDate == nil {
+	if maxDate.IsZero() || minDate.IsZero() {
 		return deploymentCounts
 	}
 
@@ -84,7 +84,7 @@ func calculateDeploymentFrequency(deployments []internal.Deployment) (deployment
 	var currentString string
 	for currentString != maxString {
 		if current.IsZero() {
-			current = *minDate
+			current = minDate
 		} else {
 			current = current.Add(time.Hour * 24)
 		}
