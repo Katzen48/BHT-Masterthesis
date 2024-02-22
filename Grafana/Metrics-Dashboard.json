@@ -109,10 +109,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -155,7 +151,7 @@
           "rawQuery": true,
           "refId": "A",
           "table": "deployment_frequencies",
-          "target": "SELECT adapter, grouping_key, date, frequency FROM metrics.deployment_frequencies WHERE date > $__timeFrom and date < $__timeTo ALLOW FILTERING"
+          "target": "SELECT grouping_key, adapter, date, frequency FROM metrics.deployment_frequencies WHERE date > $__timeFrom and date < $__timeTo ALLOW FILTERING"
         }
       ],
       "title": "Deployment Frequency over time",
@@ -277,6 +273,17 @@
         {
           "id": "merge",
           "options": {}
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "grouping_key"
+              }
+            ]
+          }
         }
       ],
       "type": "barchart"
@@ -382,6 +389,17 @@
         {
           "id": "merge",
           "options": {}
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "repository_id"
+              }
+            ]
+          }
         }
       ],
       "type": "barchart"
@@ -433,12 +451,12 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "none"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 18,
+        "h": 9,
         "w": 12,
         "x": 12,
         "y": 13
@@ -475,14 +493,25 @@
           "queryType": "query",
           "rawQuery": true,
           "refId": "A",
-          "target": "SELECT repository_id, adapter, AVG(rate) FROM metrics.change_failure_rates GROUP BY adapter, repository_id ALLOW FILTERING"
+          "target": "SELECT repository_id, adapter, count(*) FROM metrics.lead_times GROUP BY adapter, repository_id ALLOW FILTERING"
         }
       ],
-      "title": "Mean Change Failure Rate",
+      "title": "Distinct Issues",
       "transformations": [
         {
           "id": "merge",
           "options": {}
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "repository_id"
+              }
+            ]
+          }
         }
       ],
       "type": "barchart"
@@ -583,6 +612,129 @@
         {
           "id": "merge",
           "options": {}
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "repository_id"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "hadesarchitect-cassandra-datasource",
+        "uid": "${DS_METRICS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "displayName": "Mean Change Failure Rate",
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "id": 10,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "hadesarchitect-cassandra-datasource",
+            "uid": "${DS_METRICS}"
+          },
+          "datasourceId": 1,
+          "queryType": "query",
+          "rawQuery": true,
+          "refId": "A",
+          "target": "SELECT repository_id, adapter, AVG(rate) FROM metrics.change_failure_rates GROUP BY adapter, repository_id ALLOW FILTERING"
+        }
+      ],
+      "title": "Mean Change Failure Rate",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "repository_id"
+              }
+            ]
+          }
         }
       ],
       "type": "barchart"
@@ -604,6 +756,6 @@
   "timezone": "",
   "title": "Metrics",
   "uid": "ed489061-c63c-4d53-84b7-d94d58e3cf8c",
-  "version": 33,
+  "version": 37,
   "weekStart": ""
 }

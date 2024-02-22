@@ -8,4 +8,5 @@ Architektur und Code für die Masterarbeit "Implementierung der DORA Four Key Me
 ![Scraper Flowchart](Scraper_Flowchart.png)
 
 ## Schnittstellen Definition
-[Adapter OpenAPI Spec](Adapter.yaml)
+[Adapter OpenAPI Spec](Adapter.yaml)  
+[Adapter Markdown](Docs/Api/README.md)

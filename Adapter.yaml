@@ -107,6 +107,7 @@ components:
       required:
         - id
         - created_at
+        - repo
       properties:
         id:
           type: string
@@ -125,11 +126,23 @@ components:
         - $ref: '#/components/schemas/WorkItem'
         - type: object
           properties:
-            pull_request:
-              type: object
-              allOf:
-                - $ref: '#/components/schemas/PullRequest'
+            pull_requests:
+              description: Pull Request IDs
+              type: array
+              items:
+                type: string
+            type:
+              enum:
+                - Issue
+                - Bug
+              type: string
+
     PullRequest:
+      required:
+        - head
+        - base
+        - issues
+        - commits
       allOf:
         - $ref: '#/components/schemas/WorkItem'
         - type: object
@@ -151,10 +164,12 @@ components:
             merged_at:
               type: string
               format: 'date-time'
-            issue:
-              type: object
-              allOf:
-                - $ref: '#/components/schemas/Issue'
+            issues:
+              type: array
+              items:
+                type: object
+                allOf:
+                  - $ref: '#/components/schemas/Issue'
             commits:
               type: array
               items:
@@ -172,11 +187,15 @@ components:
           type: object
           allOf:
             - $ref: '#/components/schemas/Repository'
+        created_at:
+          type: string
+          format: 'date-time'
     Deployment:
       type: object
       required:
         - id
         - sha
+        - commit
         - ref
         - task
         - created_at
@@ -205,6 +224,11 @@ components:
           type: string
           format: 'date-time'
     Environment:
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
       type: object
       properties:
         id:
@@ -218,6 +242,10 @@ components:
           type: string
           format: 'date-time'
     Repository:
+      required:
+        - id
+        - full_name
+        - grouping_key
       type: object
       properties:
         id:
@@ -233,6 +261,8 @@ components:
         updated_at:
           type: string
           format: 'date-time'
+        grouping_key:
+          type: string
   parameters:
     Repo:
       in: path
